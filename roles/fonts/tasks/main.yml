@@ -1,0 +1,22 @@
+---
+- name: Ensure fonts directory exists
+  file:
+    path: "{{ ansible_env.HOME }}/.local/share/fonts"
+    state: directory
+    mode: '0755'
+
+- name: Download Nerd Font "{{ nerd_font_name }}"
+  get_url:
+    url: "{{ nerd_font_url }}"
+    dest: "/tmp/{{ nerd_font_name }}.zip"
+    mode: '0644'
+
+- name: Unzip Nerd Font "{{ nerd_font_name }}"
+  unarchive:
+    src: "/tmp/{{ nerd_font_name }}.zip"
+    dest: "{{ ansible_env.HOME }}/.local/share/fonts"
+    remote_src: yes
+    extra_opts: [ "-o" ]
+
+- name: Refresh font cache
+  command: fc-cache -fv

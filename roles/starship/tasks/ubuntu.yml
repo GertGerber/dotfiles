@@ -1,15 +1,26 @@
-# Install Starship using the official install script
-- name: Install Starship
+---
+- name: Gather Ubuntu version
+  ansible.builtin.setup:
+    filter: ansible_distribution_version
+  register: ubuntu_version
+
+- name: Ensure curl is installed
+  apt:
+    name: curl
+    state: present
+    update_cache: yes
+
+- name: Install Starship via apt if Ubuntu >= 25.04
+  apt:
+    name: starship
+    state: present
+  when: (ubuntu_version.ansible_facts.ansible_distribution_version | version_compare('25.04', '>='))
+
+- name: Install Starship via official script for older Ubuntu
   shell: curl -fsSL https://starship.rs/install.sh | sh -s -- -y
   args:
     creates: /usr/local/bin/starship
-
-# Ensure the user's config directory exists
-- name: Ensure Starship config directory exists
-  file:
-    path: "{{ ansible_env.HOME }}/.config"
-    state: directory
-    mode: '0755'
+  when: (ubuntu_version.ansible_facts.ansible_distribution_version | version_compare('25.04', '<'))
 
 - name: Ensure Starship config directory exists
   file:
@@ -17,7 +28,6 @@
     state: directory
     mode: '0755'
 
-# Deploy the starship.toml configuration
 - name: Deploy Starship configuration
   template:
     src: starship.toml.j2
@@ -26,7 +36,6 @@
     group: "{{ ansible_env.USER }}"
     mode: '0644'
 
-# Add Starship init to .zshrc if not already present
 - name: Ensure Starship is initialized in zsh
   lineinfile:
     path: "{{ ansible_env.HOME }}/.zshrc"
