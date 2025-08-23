@@ -1,8 +1,27 @@
 ---
-- name: Bootstrap base system
+- name: Bootstrap base system with OS/WSL detection
   hosts: localhost
   connection: local
   gather_facts: yes
+
+  vars:
+    is_wsl: false
+    os_type: "{{ ansible_system | lower }}"
+
+  pre_tasks:
+    - name: Detect WSL
+      ansible.builtin.command: uname -r
+      register: uname_output
+      changed_when: false
+
+    - name: Set WSL flag if running on Windows Subsystem for Linux
+      ansible.builtin.set_fact:
+        is_wsl: "{{ 'microsoft' in uname_output.stdout | lower }}"
+
+    - name: Print detected environment
+      ansible.builtin.debug:
+        msg: >
+          "Detected OS: {{ os_type }} | WSL: {{ is_wsl }}"
 
   tasks:
     - name: Ensure common system packages are present
