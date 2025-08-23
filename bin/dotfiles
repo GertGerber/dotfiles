@@ -173,22 +173,32 @@ update_dotfiles() {
 }
 
 # -----------------------------
-# Ensure alias exists
+# Ensure alias exists in both Bash and Zsh
 # -----------------------------
 setup_alias() {
-    # Safe Zsh detection
-    if [ -n "${ZSH_VERSION-}" ]; then
-        SHELL_RC="$HOME/.zshrc"
-    else
-        SHELL_RC="$HOME/.bashrc"
-    fi
+    local shells=( "$HOME/.bashrc" "$HOME/.zshrc" )
+    local alias_line="alias dotfiles='$DOTFILES_DIR/bin/dotfiles'"
 
-    if ! grep -q "alias dotfiles=" "$SHELL_RC" 2>/dev/null; then
-        echo -e "${ARROW} Adding 'dotfiles' alias to $SHELL_RC..."
-        echo "alias dotfiles='$DOTFILES_DIR/bin/dotfiles'" >> "$SHELL_RC"
-        echo -e "${CHECK_MARK} Alias added! Restart your shell or run 'source $SHELL_RC'"
-    fi
+    for shell_rc in "${shells[@]}"; do
+        # Create the rc file if it doesn't exist
+        if [ ! -f "$shell_rc" ]; then
+            echo -e "${ARROW} $shell_rc not found, creating it..."
+            touch "$shell_rc"
+        fi
+
+        # Add alias if not already present
+        if ! grep -qF "$alias_line" "$shell_rc"; then
+            echo -e "${ARROW} Adding 'dotfiles' alias to $shell_rc..."
+            echo "$alias_line" >> "$shell_rc"
+            echo -e "${CHECK_MARK} Alias added to $shell_rc!"
+        else
+            echo -e "${CHECK_MARK} Alias already exists in $shell_rc, skipping..."
+        fi
+    done
+
+    echo -e "${CHECK_MARK} Done! Restart your shell or run 'source ~/.bashrc && source ~/.zshrc'"
 }
+
 
 # -------------------------------------------------------------------
 # Ensure group_vars/all.yml exists
