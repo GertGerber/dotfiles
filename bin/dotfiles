@@ -71,8 +71,6 @@ print_banner() {
     echo -e "${CAT_BLUE}      ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║${NC}"
     echo -e "${CAT_BLUE}      ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║${NC}"
     echo -e "${CAT_BLUE}      ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝${NC}"
-    echo ""
-    echo ""
 
     # Detect OS
     if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then
@@ -115,7 +113,12 @@ install_dependencies() {
     if ! command -v ansible >/dev/null 2>&1; then
         echo -e "${CLOCK} Installing Ansible..."
         python3 -m pip install --user --upgrade ansible
-        export PATH="$HOME/.local/bin:$PATH"
+        # Ensure ~/.local/bin in PATH
+        if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc" 2>/dev/null || true
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
     fi
     echo -e "${CHECK_MARK} Dependencies installed."
 }
@@ -151,10 +154,16 @@ update_dotfiles() {
 # Ensure alias exists
 # -----------------------------
 setup_alias() {
-    if ! grep -q "alias dotfiles=" "$HOME/.bashrc" 2>/dev/null; then
-        echo -e "${ARROW} Adding 'dotfiles' alias..."
-        echo "alias dotfiles='$DOTFILES_DIR/bin/dotfiles'" >> "$HOME/.bashrc"
-        echo -e "${CHECK_MARK} Alias added! Restart your shell or run 'source ~/.bashrc'"
+    SHELL_RC="$HOME/.bashrc"
+    [ -n "$ZSH_VERSION" ] && SHELL_RC="$HOME/.zshrc"
+
+    if ! grep -q "alias dotfiles=" "$SHELL_RC" 2>/dev/null; then
+        echo -e "${ARROW} Adding 'dotfiles' alias to $SHELL_RC..."
+        echo "alias dotfiles='$DOTFILES_DIR/bin/dotfiles'" >> "$SHELL_RC"
+        # Source immediately
+        # shellcheck source=/dev/null
+        source "$SHELL_RC"
+        echo -e "${CHECK_MARK} Alias added! You can now run 'dotfiles' anywhere."
     fi
 }
 
