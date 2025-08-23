@@ -17,10 +17,10 @@
   when: ubuntu_version.ansible_facts.ansible_distribution_version is version('25.04', '>=')
 
 - name: Install Starship via official script for older Ubuntu
-  shell: curl -fsSL https://starship.rs/install.sh | sh -s -- -y
+  shell: curl -sS https://starship.rs/install.sh | sh
   args:
     creates: /usr/local/bin/starship
-  when: (ubuntu_version.ansible_facts.ansible_distribution_version | version_compare('25.04', '<'))
+  when: ubuntu_version.ansible_facts.ansible_distribution_version is version('25.04', '<')
 
 - name: Ensure Starship config directory exists
   file:
