@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# bin/dotfiles_private — bootstrap for private repo
+
+DOTFILES_DIR="$HOME/.dotfiles"
+REPO_URL="git@github.com:GertGerber/dotfiles_private.git"  # SSH URL for private repo
+BRANCH="main"
+
+echo "[*] Checking base dependencies..."
+
+# Git
+if ! command -v git >/dev/null 2>&1; then
+  echo "[*] Installing git..."
+  sudo apt update && sudo apt install -y git
+fi
+
+# Python3
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[*] Installing python3..."
+  sudo apt update && sudo apt install -y python3 python3-pip
+fi
+
+# Pip3
+if ! command -v pip3 >/dev/null 2>&1; then
+  echo "[*] Installing pip3..."
+  sudo apt update && sudo apt install -y python3-pip
+fi
+
+# Ansible
+if ! command -v ansible >/dev/null 2>&1; then
+  echo "[*] Installing Ansible..."
+  python3 -m pip install --user --upgrade ansible
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Clone or update private repo
+if [ -d "$DOTFILES_DIR" ]; then
+  echo "[*] Updating existing dotfiles_private repository..."
+  cd "$DOTFILES_DIR"
+  git fetch --all
+  git reset --hard "origin/$BRANCH"
+else
+  echo "[*] Cloning private dotfiles_private repository..."
+  git clone --branch "$BRANCH" "$REPO_URL" "$DOTFILES_DIR"
+fi
+
+# Run the bootstrap playbook (now Ansible is guaranteed)
+cd "$DOTFILES_DIR" || exit 1
+ansible-playbook -i localhost, pre_tasks/bootstrap.yml --connection=local
