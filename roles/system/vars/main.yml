@@ -1,0 +1,6 @@
+# Essential packages for all systems
+system_packages:
+  - build-essential
+  - software-properties-common
+  - apt-transport-https
+  - ca-certificates

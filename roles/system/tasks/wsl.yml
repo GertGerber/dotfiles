@@ -1,0 +1,40 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade all packages to latest version
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+    force_apt_get: yes
+
+- name: Install essential packages
+  ansible.builtin.apt:
+    name: "{{ system_packages }}"
+    state: present
+
+- name: Ensure user has .local/bin in PATH
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    regexp: 'export PATH=.*\.local/bin'
+    line: 'export PATH="$HOME/.local/bin:$PATH"'
+    state: present
+
+- name: Ensure user has .local/bin in PATH for zsh
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    regexp: 'export PATH=.*\.local/bin'
+    line: 'export PATH="$HOME/.local/bin:$PATH"'
+    state: present
+
+- name: Clean up old packages
+  ansible.builtin.apt:
+    autoremove: yes
+    autoclean: yes
+
+- name: Display WSL note
+  ansible.builtin.debug:
+    msg: "WSL upgrade completed. No reboot required."

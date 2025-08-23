@@ -1,0 +1,11 @@
+---
+- name: "Include OS-specific tasks"
+  ansible.builtin.include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "ubuntu.yml"
+        - "wsl.yml"
+        - "mac.yml"
+        - "default.yml"
+      paths:
+        - "{{ role_path }}/tasks"
