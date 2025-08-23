@@ -190,6 +190,23 @@ setup_alias() {
     fi
 }
 
+# -------------------------------------------------------------------
+# Ensure group_vars/all.yml exists
+# -------------------------------------------------------------------
+groupvars_check() {
+    if [ ! -f "$DOTFILES_DIR/group_vars/all.yml" ]; then
+    echo -e "${YELLOW}⚠️  group_vars/all.yml not found. Creating from example...${RESET}"
+    if [ -f "$DOTFILES_DIR/group_vars/all.yml.example" ]; then
+        cp "$DOTFILES_DIR/group_vars/all.yml.example" "$DOTFILES_DIR/group_vars/all.yml"
+        echo -e "${GREEN}✔ Created group_vars/all.yml. Please review and customize it.${RESET}"
+    else
+        echo -e "${RED}✖ No all.yml.example found in $DOTFILES_DIR/group_vars. Cannot continue.${RESET}"
+        exit 1
+    fi
+    fi
+}
+
+
 # -----------------------------
 # Run Bootstrap Playbook
 # -----------------------------
@@ -206,6 +223,7 @@ main() {
     install_dependencies
     update_dotfiles
     setup_alias
+    groupvars_check
     run_bootstrap
     echo -e "${GREEN}🎉 Dotfiles setup complete! Run 'dotfiles' to re-run.${NC}"
 }
