@@ -154,8 +154,12 @@ update_dotfiles() {
 # Ensure alias exists
 # -----------------------------
 setup_alias() {
-    SHELL_RC="$HOME/.bashrc"
-    [ -n "$ZSH_VERSION" ] && SHELL_RC="$HOME/.zshrc"
+    # Safe detection of Zsh vs Bash
+    if [ -n "${ZSH_VERSION-}" ]; then
+        SHELL_RC="$HOME/.zshrc"
+    else
+        SHELL_RC="$HOME/.bashrc"
+    fi
 
     if ! grep -q "alias dotfiles=" "$SHELL_RC" 2>/dev/null; then
         echo -e "${ARROW} Adding 'dotfiles' alias to $SHELL_RC..."
@@ -166,6 +170,7 @@ setup_alias() {
         echo -e "${CHECK_MARK} Alias added! You can now run 'dotfiles' anywhere."
     fi
 }
+
 
 # -----------------------------
 # Run Bootstrap Playbook
