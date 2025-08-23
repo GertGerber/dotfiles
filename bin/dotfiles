@@ -213,8 +213,13 @@ groupvars_check() {
 # -----------------------------
 run_bootstrap() {
     cd "$DOTFILES_DIR" || exit 1
+    # First, run bootstrap (ensures base packages + sudo check)
     ansible-playbook -i localhost, pre_tasks/bootstrap.yml --connection=local
+    
+    # Then, run the main playbook (applies roles from group_vars/all.yml)
+    ansible-playbook -i localhost, main.yml --connection=local
 }
+
 
 # -----------------------------
 # Main Execution
