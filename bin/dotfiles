@@ -45,6 +45,30 @@ else
   git clone --branch "$BRANCH" "$REPO_URL" "$DOTFILES_DIR"
 fi
 
-# Run the bootstrap playbook (now Ansible is guaranteed)
+# Run the bootstrap playbook
 cd "$DOTFILES_DIR" || exit 1
 ansible-playbook -i localhost, pre_tasks/bootstrap.yml --connection=local
+
+# -------------------------------
+# Add persistent alias "dotfiles"
+# -------------------------------
+
+SHELL_RC="$HOME/.bashrc"
+# Detect zsh
+if [ -n "${ZSH_VERSION-}" ]; then
+  SHELL_RC="$HOME/.zshrc"
+fi
+
+ALIAS_CMD="alias dotfiles='$DOTFILES_DIR/bin/dotfiles'"
+
+# Check if alias already exists
+if grep -Fxq "$ALIAS_CMD" "$SHELL_RC"; then
+  echo "[*] Alias 'dotfiles' already exists in $SHELL_RC, updating..."
+  # Replace existing alias line
+  sed -i "\|alias dotfiles=|c\\$ALIAS_CMD" "$SHELL_RC"
+else
+  echo "[*] Adding alias 'dotfiles' to $SHELL_RC"
+  echo "$ALIAS_CMD" >> "$SHELL_RC"
+fi
+
+echo "[*] Alias 'dotfiles' is now available. Run 'source $SHELL_RC' or restart your shell."
