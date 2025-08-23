@@ -1,12 +1,17 @@
 ---
 - hosts: localhost
   gather_facts: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
   vars_files:
     - group_vars/all.yml
+
 
   tasks:
     - name: Run enabled roles dynamically
       ansible.builtin.include_role:
-        name: "{{ item }}"
+        name: "{{ role_name }}"
       loop: "{{ default_roles | default([]) }}"
-      when: item is not regex('^#')  # skip commented-out lines
+      loop_control:
+        loop_var: role_name
+      when: role_name is not regex('^#')
