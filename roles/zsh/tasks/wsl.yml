@@ -1,11 +1,18 @@
 ---
-- name: Install zsh on WSL (same as Ubuntu)
+# =====================================================================
+# WSL-specific tasks for zsh role
+# =====================================================================
+
+- name: "Ensure zsh is installed in WSL"
+  become: true
   ansible.builtin.apt:
     name: zsh
     state: present
     update_cache: true
 
-# Don’t change default shell automatically on WSL to avoid login shell issues
-- name: Print message about zsh on WSL
-  ansible.builtin.debug:
-    msg: "zsh installed, but default shell not changed on WSL. Run 'chsh -s /usr/bin/zsh' manually if desired."
+- name: "Set zsh as default shell inside WSL"
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    shell: /usr/bin/zsh
+  when: ansible_user_shell != "/usr/bin/zsh"

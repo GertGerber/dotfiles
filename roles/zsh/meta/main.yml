@@ -1,0 +1,10 @@
+---
+# =====================================================================
+# Metadata for zsh role
+# =====================================================================
+galaxy_info:
+  role_name: zsh
+  author: GertGerber
+  description: "Installs and configures the Z shell (zsh) with OS-specific support."
+  license: MIT
+  min_ansible_version: 2.12

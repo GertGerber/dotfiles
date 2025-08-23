@@ -1,8 +1,15 @@
 ---
-- name: Include OS specific tasks
-  ansible.builtin.include_tasks: "{{ ansible_distribution | lower }}.yml"
-  when: ansible_distribution in ["Ubuntu"]
+# =====================================================================
+# Role: zsh
+# Installs and configures Z shell depending on the environment.
+# =====================================================================
 
-- name: Include WSL tasks
-  ansible.builtin.include_tasks: wsl.yml
-  when: ansible_distribution == "Ubuntu" and ansible_virtualization_type == "wsl"
+- name: "Include OS-specific tasks"
+  ansible.builtin.include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "ubuntu.yml"
+        - "wsl.yml"
+        - "default.yml"
+      paths:
+        - "{{ role_path }}/tasks"

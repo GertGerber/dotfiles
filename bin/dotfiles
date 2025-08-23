@@ -195,16 +195,17 @@ setup_alias() {
 # -------------------------------------------------------------------
 groupvars_check() {
     if [ ! -f "$DOTFILES_DIR/group_vars/all.yml" ]; then
-    echo -e "${YELLOW}⚠️  group_vars/all.yml not found. Creating from example...${RESET}"
-    if [ -f "$DOTFILES_DIR/group_vars/all.yml.example" ]; then
-        cp "$DOTFILES_DIR/group_vars/all.yml.example" "$DOTFILES_DIR/group_vars/all.yml"
-        echo -e "${GREEN}✔ Created group_vars/all.yml. Please review and customize it.${RESET}"
-    else
-        echo -e "${RED}✖ No all.yml.example found in $DOTFILES_DIR/group_vars. Cannot continue.${RESET}"
-        exit 1
-    fi
+        echo -e "${YELLOW}⚠️  group_vars/all.yml not found. Creating from example...${NC}"
+        if [ -f "$DOTFILES_DIR/group_vars/all.yml.example" ]; then
+            cp "$DOTFILES_DIR/group_vars/all.yml.example" "$DOTFILES_DIR/group_vars/all.yml"
+            echo -e "${GREEN}✔ Created group_vars/all.yml. Please review and customize it.${NC}"
+        else
+            echo -e "${RED}✖ No all.yml.example found in $DOTFILES_DIR/group_vars. Cannot continue.${NC}"
+            exit 1
+        fi
     fi
 }
+
 
 
 # -----------------------------
@@ -221,9 +222,9 @@ run_bootstrap() {
 main() {
     print_banner
     install_dependencies
+    groupvars_check
     update_dotfiles
     setup_alias
-    groupvars_check
     run_bootstrap
     echo -e "${GREEN}🎉 Dotfiles setup complete! Run 'dotfiles' to re-run.${NC}"
 }

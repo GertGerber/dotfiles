@@ -1,0 +1,8 @@
+---
+# =====================================================================
+# Default fallback tasks for zsh role
+# =====================================================================
+
+- name: "Fail if OS is unsupported"
+  ansible.builtin.fail:
+    msg: "zsh role: unsupported OS '{{ ansible_os_family }}'. Please add a tasks file."
