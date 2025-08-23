@@ -1,8 +1,4 @@
 ---
-# =====================================================================
-# Ubuntu-specific tasks for zsh role
-# =====================================================================
-
 - name: "Ensure zsh is installed on Ubuntu"
   become: true
   ansible.builtin.apt:

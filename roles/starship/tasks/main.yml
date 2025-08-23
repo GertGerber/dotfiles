@@ -1,6 +1,8 @@
+---
 - name: Include OS-specific tasks
   ansible.builtin.include_tasks: "{{ item }}"
   loop:
     - "ubuntu.yml"
     - "wsl.yml"
-  when: ansible_distribution == "Ubuntu" or ansible_env.WSL_DISTRO_NAME is defined
+    - "mac.yml"
+  when: ansible_distribution == "Ubuntu" or ansible_env.WSL_DISTRO_NAME is defined or ansible_system == "Darwin"

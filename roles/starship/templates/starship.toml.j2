@@ -1,11 +1,8 @@
-# Starship Prompt Configuration
-# https://starship.rs/config/
-
 add_newline = false
 
 [character]
-success_symbol = "[➜](bold green)"
-error_symbol = "[✗](bold red)"
+success_symbol = "[✔](bold green)"
+error_symbol = "[✖](bold red)"
 
 [directory]
 truncation_length = 3
@@ -13,17 +10,17 @@ truncate_to_repo = false
 style = "blue bold"
 
 [git_branch]
-symbol = " "
+symbol = " "
 style = "purple bold"
 
 [git_status]
-conflicted = "⚔️ "
+conflicted = "✖ "
 ahead = "⇡${count}"
 behind = "⇣${count}"
 staged = "+${count}"
 deleted = "✖ ${count}"
 modified = "~${count}"
-untracked = "?${count}"
+untracked = "?"
 style = "bold yellow"
 
 [time]

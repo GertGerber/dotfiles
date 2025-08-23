@@ -1,4 +1,6 @@
+---
 - name: Ensure starship is installed on WSL
+  become: true
   ansible.builtin.apt:
     name: starship
     state: present

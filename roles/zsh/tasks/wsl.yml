@@ -1,8 +1,4 @@
 ---
-# =====================================================================
-# WSL-specific tasks for zsh role
-# =====================================================================
-
 - name: "Ensure zsh is installed in WSL"
   become: true
   ansible.builtin.apt:
