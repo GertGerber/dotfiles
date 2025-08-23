@@ -34,24 +34,24 @@ nerd_font_url: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download
 # Roles are modular and support install/uninstall via the 'dotfiles' alias.
 default_roles:
   # === Core System Tools (Recommended) ===
-  - system        # Essential system configurations and base tools
+  # - system        # Essential system configurations and base tools
   - fonts         # Developer-friendly fonts (Nerd Fonts)
 
   # === Development Core ===
   - git           # Git is already installed by bootstrap. 
                   # Role will configure git_user_name/email and SSH keys
-  - neovim        # Will install Neovim if missing
-  - tmux          # Will install tmux if missing
+  # - neovim        # Will install Neovim if missing
+  # - tmux          # Will install tmux if missing
 
   # === Shell Environment ===
   - zsh           # Will install zsh if missing
   - starship      # Will install starship prompt
-  - fzf           # Will install fuzzy finder
+  # - fzf           # Will install fuzzy finder
 
   # === File Management ===
-  - bat           # Will install bat if missing
-  - lsd           # Will install lsd
-  - zoxide        # Will install zoxide
+  # - bat           # Will install bat if missing
+  # - lsd           # Will install lsd
+  # - zoxide        # Will install zoxide
 
   # === Development Languages ===
   # - python        # Python3/pip3 already installed by bootstrap
@@ -221,16 +221,16 @@ default_roles:
 
 # Uncomment and configure if you want to use 1Password:
 # 1Password integration
-op:
-  git:
-    user:
-      email: "op://Personal/GitHub/email"
-      allowed_signers: "op://Personal/GitHub SSH/allowed_signers"
-  ssh:
-    github:
-      personal:
-        - name: id_ed25519
-          vault_path: "op://Personal/GitHub SSH"
+# op:
+#   git:
+#     user:
+#       email: "op://Personal/GitHub/email"
+#       allowed_signers: "op://Personal/GitHub SSH/allowed_signers"
+#   ssh:
+#     github:
+#       personal:
+#         - name: id_ed25519
+#           vault_path: "op://Personal/GitHub SSH"
 
 # --------------------------------------------------------------------
 # EXAMPLES BY USE CASE
