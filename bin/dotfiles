@@ -12,22 +12,48 @@ CONFIG_FILE="$DOTFILES_DIR/group_vars/all.yml"
 # -----------------------------
 # Catppuccin Mocha Palette
 # -----------------------------
-CAT_ROSEWATER="#f5e0dc"
-CAT_FLAMINGO="#f2cdcd"
-CAT_PINK="#f5c2e7"
-CAT_MAUVE="#cba6f7"
-CAT_RED="#f38ba8"
-CAT_MAROON="#eba0ac"
-CAT_PEACH="#fab387"
-CAT_YELLOW="#f9e2af"
-CAT_GREEN="#a6e3a1"
-CAT_TEAL="#94e2d5"
-CAT_SKY="#89dceb"
-CAT_SAPPHIRE="#74c7ec"
-CAT_BLUE="#89b4fa"
-CAT_LAVENDER="#b4befe"
-CAT_TEXT="#cdd6f4"
-CAT_SURFACE0="#a6adc8"
+# CAT_ROSEWATER="#f5e0dc"
+CAT_ROSEWATER='\033[38;2;245;224;220m'
+# CAT_FLAMINGO="#f2cdcd"
+CAT_FLAMINGO='\033[38;2;242;205;205m'
+# CAT_PINK="#f5c2e7"
+CAT_PINK='\033[38;2;245;194;231m'
+# CAT_MAUVE="#cba6f7"
+CAT_MAUVE='\033[38;2;203;166;247m'
+# CAT_RED="#f38ba8"
+CAT_RED='\033[38;2;243;139;168m'
+# CAT_MAROON="#eba0ac"
+CAT_MAROON='\033[38;2;235;160;172m'
+# CAT_PEACH="#fab387"
+CAT_PEACH='\033[38;2;250;179;135m'
+# CAT_YELLOW="#f9e2af"
+CAT_YELLOW='\033[38;2;249;226;175m'
+# CAT_GREEN="#a6e3a1"
+CAT_GREEN='\033[38;2;166;227;161m'
+# CAT_TEAL="#94e2d5"
+CAT_TEAL='\033[38;2;148;226;213m'
+# CAT_SKY="#89dceb"
+CAT_SKY='\033[38;2;137;220;235m'
+# CAT_SAPPHIRE="#74c7ec"
+CAT_SAPPHIRE='\033[38;2;116;199;236m'
+# CAT_BLUE="#89b4fa"
+CAT_BLUE='\033[38;2;137;180;250m'
+# CAT_LAVENDER="#b4befe"
+CAT_LAVENDER='\033[38;2;180;190;254m'
+# CAT_TEXT="#cdd6f4"
+CAT_TEXT='\033[38;2;205;214;244m'
+# CAT_SURFACE0="#a6adc8"
+CAT_SURFACE0='\033[38;2;49;50;68m'
+CAT_SUBTEXT1='\033[38;2;186;194;222m'
+CAT_SUBTEXT0='\033[38;2;166;173;200m'
+CAT_OVERLAY2='\033[38;2;147;153;178m'
+CAT_OVERLAY1='\033[38;2;127;132;156m'
+CAT_OVERLAY0='\033[38;2;108;112;134m'
+CAT_SURFACE2='\033[38;2;88;91;112m'
+CAT_SURFACE1='\033[38;2;69;71;90m'
+CAT_BASE='\033[38;2;30;30;46m'
+CAT_MANTLE='\033[38;2;24;24;37m'
+CAT_CRUST='\033[38;2;17;17;27m'
 
 RED="$CAT_RED"
 GREEN="$CAT_GREEN"
@@ -71,6 +97,7 @@ print_banner() {
     echo -e "${CAT_BLUE}      ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║${NC}"
     echo -e "${CAT_BLUE}      ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║${NC}"
     echo -e "${CAT_BLUE}      ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝${NC}"
+    echo ""
 
     # Detect OS
     if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then
@@ -113,12 +140,7 @@ install_dependencies() {
     if ! command -v ansible >/dev/null 2>&1; then
         echo -e "${CLOCK} Installing Ansible..."
         python3 -m pip install --user --upgrade ansible
-        # Ensure ~/.local/bin in PATH
-        if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc" 2>/dev/null || true
-            export PATH="$HOME/.local/bin:$PATH"
-        fi
+        export PATH="$HOME/.local/bin:$PATH"
     fi
     echo -e "${CHECK_MARK} Dependencies installed."
 }
@@ -154,7 +176,7 @@ update_dotfiles() {
 # Ensure alias exists
 # -----------------------------
 setup_alias() {
-    # Safe detection of Zsh vs Bash
+    # Safe Zsh detection
     if [ -n "${ZSH_VERSION-}" ]; then
         SHELL_RC="$HOME/.zshrc"
     else
@@ -164,13 +186,9 @@ setup_alias() {
     if ! grep -q "alias dotfiles=" "$SHELL_RC" 2>/dev/null; then
         echo -e "${ARROW} Adding 'dotfiles' alias to $SHELL_RC..."
         echo "alias dotfiles='$DOTFILES_DIR/bin/dotfiles'" >> "$SHELL_RC"
-        # Source immediately
-        # shellcheck source=/dev/null
-        source "$SHELL_RC"
-        echo -e "${CHECK_MARK} Alias added! You can now run 'dotfiles' anywhere."
+        echo -e "${CHECK_MARK} Alias added! Restart your shell or run 'source $SHELL_RC'"
     fi
 }
-
 
 # -----------------------------
 # Run Bootstrap Playbook
