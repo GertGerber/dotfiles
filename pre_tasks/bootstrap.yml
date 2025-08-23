@@ -1,0 +1,33 @@
+---
+- name: Bootstrap base system
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  tasks:
+    - name: Ensure common system packages are present
+      ansible.builtin.package:
+        name:
+          - curl
+          - unzip
+          - tar
+        state: present
+
+    - name: Check sudo access
+      ansible.builtin.command: whoami
+      become: yes
+      register: sudo_check
+      ignore_errors: yes
+
+    - name: Fail if no sudo privileges
+      ansible.builtin.fail:
+        msg: "User does not have sudo privileges — required for setup"
+      when: sudo_check is failed
+
+    - name: Ensure ~/.local/bin is in PATH (for pip-installed tools)
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        regexp: 'export PATH=.*\.local/bin'
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        state: present
+        insertafter: EOF
