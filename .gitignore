@@ -16,4 +16,5 @@ _book
 *.pdf
 
 # dotfiles spesific
-dotfiles/group_vars/all.yml
+group_vars/all.yml
+all.yml
