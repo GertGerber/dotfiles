@@ -14,7 +14,7 @@
   apt:
     name: starship
     state: present
-  when: (ubuntu_version.ansible_facts.ansible_distribution_version | version_compare('25.04', '>='))
+  when: ubuntu_version.ansible_facts.ansible_distribution_version is version('25.04', '>=')
 
 - name: Install Starship via official script for older Ubuntu
   shell: curl -fsSL https://starship.rs/install.sh | sh -s -- -y
