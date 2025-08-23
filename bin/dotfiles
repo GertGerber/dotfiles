@@ -236,9 +236,9 @@ run_bootstrap() {
 # -----------------------------
 main() {
     print_banner
-    install_dependencies
     update_dotfiles
     groupvars_check
+    install_dependencies
     setup_alias
     run_bootstrap
     echo -e "${GREEN}🎉 Dotfiles setup complete! Run 'dotfiles' to re-run.${NC}"
