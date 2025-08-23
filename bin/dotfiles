@@ -4,7 +4,7 @@ set -euo pipefail
 # bin/dotfiles
 
 DOTFILES_DIR="$HOME/.dotfiles"
-REPO_URL="https://github.com/YourUser/dotfiles.git"
+REPO_URL="https://github.com/GertGerber/dotfiles.git"
 BRANCH="main"
 
 echo "[*] Checking base dependencies..."
