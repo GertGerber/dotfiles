@@ -25,8 +25,6 @@ prompt_order = [
 symbol = "{{ starship_character_symbol | default('❯') }}"
 vicmd_symbol = "{{ starship_character_vicmd_symbol | default('❮') }}"
 use_symbol_for_status = {{ starship_character_use_symbol_for_status | default(true) | lower }}
-success_symbol = "{{ starship_character_success_symbol | default('[✔](bold green)') }}"
-error_symbol = "{{ starship_character_error_symbol | default('[✖](bold red)') }}"
 
 [directory]
 truncate_to_repo = {{ starship_directory_truncate | default(false) | lower }}
