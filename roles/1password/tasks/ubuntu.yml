@@ -59,27 +59,57 @@
   register: personal_items
   changed_when: false
 
-- name: Show Personal vault items (as list)
-  ansible.builtin.debug:
-    msg: "{{ personal_items.stdout_lines }}"
+# - name: Show Personal vault items (as list)
+#   ansible.builtin.debug:
+#     msg: "{{ personal_items.stdout_lines }}"
 
-- name: Get list of items in Personal vault (JSON output)
-  ansible.builtin.command: op item list --vault "Personal" --format=json
-  register: personal_items_json
+# - name: Get list of items in Personal vault (JSON output)
+#   ansible.builtin.command: op item list --vault "Personal" --format=json
+#   register: personal_items_json
+#   changed_when: false
+
+# - name: Parse Personal vault items
+#   ansible.builtin.set_fact:
+#     personal_items: "{{ personal_items_json.stdout | from_json }}"
+
+# - name: Fetch details of each item
+#   ansible.builtin.command: op item get {{ vault_item.id }} --format=json
+#   register: item_details
+#   loop: "{{ personal_items }}"
+#   loop_control:
+#     label: "{{ vault_item.title }}"
+#     loop_var: vault_item
+#   changed_when: false
+
+# - name: Show item details
+#   ansible.builtin.debug:
+#     var: item_details.results
+
+# SSH Keys
+- name: Fetch SSH private key from 1Password
+  ansible.builtin.command: op read "op://DevOps/SSH/ed25519_private_key"
+  register: ssh_private
   changed_when: false
 
-- name: Parse Personal vault items
-  ansible.builtin.set_fact:
-    personal_items: "{{ personal_items_json.stdout | from_json }}"
-
-- name: Fetch details of each item
-  ansible.builtin.command: op item get {{ item.id }} --format=json
-  register: item_details
-  loop: "{{ personal_items }}"
-  loop_control:
-    label: "{{ item.title }}"
+- name: Fetch SSH public key from 1Password
+  ansible.builtin.command: op read "op://DevOps/SSH/ed25519_public_key"
+  register: ssh_public
   changed_when: false
 
-- name: Show item details
-  ansible.builtin.debug:
-    var: item_details.results
+- name: Ensure ~/.ssh directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.ssh"
+    state: directory
+    mode: 0700
+
+- name: Deploy SSH private key
+  ansible.builtin.copy:
+    content: "{{ ssh_private.stdout }}"
+    dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519"
+    mode: 0600
+
+- name: Deploy SSH public key
+  ansible.builtin.copy:
+    content: "{{ ssh_public.stdout }}"
+    dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519.pub"
+    mode: 0644
