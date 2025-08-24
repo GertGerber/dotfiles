@@ -26,24 +26,31 @@
 #     dest: "{{ ssh_public_dest }}"
 #     mode: 0644
 
+---
+- name: Ensure ~/.ssh directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.ssh"
+    state: directory
+    mode: 0700
+
 - name: List items in 1Password vault
   ansible.builtin.command: >
-    op item list --vault {{ onepassword_vault }}
+    op item list --vault {{ onepassword_vault }} --format json
   register: vault_items
   changed_when: false
   environment:
     OP_SERVICE_ACCOUNT_TOKEN: "{{ onepassword_service_account_token }}"
 
-- name: Parse vault items
+- name: Parse vault items JSON
   ansible.builtin.set_fact:
     vault_items_parsed: "{{ vault_items.stdout | from_json }}"
 
-- name: Fetch SSH private and public keys from vault (ED25519)
+- name: Fetch ED25519 SSH keys from vault
   ansible.builtin.loop: "{{ vault_items_parsed }}"
   loop_control:
     loop_var: vault_item
   ansible.builtin.block:
-    - name: Fetch item details
+    - name: Fetch full item details
       ansible.builtin.command: >
         op item get "{{ vault_item.id }}" --format json
       register: item_details
@@ -56,12 +63,14 @@
         content: "{{ item_details.stdout | from_json | json_query('details.sections[?title==`SSH Keys`].fields[?name==`Private Key`].value') | first }}"
         dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519"
         mode: 0600
+      when: item_details.stdout | from_json | json_query('details.sections[?title==`SSH Keys`].fields[?name==`Private Key`].value') | length > 0
 
     - name: Extract public key and write to local .ssh/id_ed25519.pub
       ansible.builtin.copy:
         content: "{{ item_details.stdout | from_json | json_query('details.sections[?title==`SSH Keys`].fields[?name==`Public Key`].value') | first }}"
         dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519.pub"
         mode: 0644
+      when: item_details.stdout | from_json | json_query('details.sections[?title==`SSH Keys`].fields[?name==`Public Key`].value') | length > 0
 
 
 # - name: Show Personal vault items (as list)
