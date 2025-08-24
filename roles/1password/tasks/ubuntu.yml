@@ -54,4 +54,6 @@
   register: personal_items
   changed_when: false
 
-
+- name: Show Personal vault items (as list)
+  ansible.builtin.debug:
+    msg: "{{ personal_items.stdout_lines }}"

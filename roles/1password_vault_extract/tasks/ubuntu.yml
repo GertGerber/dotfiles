@@ -1,30 +1,67 @@
-- name: Ensure ~/.ssh directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.ssh"
-    state: directory
-    mode: 0700
+# - name: Ensure ~/.ssh directory exists
+#   ansible.builtin.file:
+#     path: "{{ ansible_env.HOME }}/.ssh"
+#     state: directory
+#     mode: 0700
 
-- name: Fetch SSH private key from 1Password
-  ansible.builtin.command: op read "op://{{ onepassword_ssh_vault }}/{{ onepassword_ssh_private_item }}"
-  register: ssh_private
+# - name: Fetch SSH private key from 1Password
+#   ansible.builtin.command: op read "op://{{ onepassword_ssh_vault }}/{{ onepassword_ssh_private_item }}"
+#   register: ssh_private
+#   changed_when: false
+
+# - name: Fetch SSH public key from 1Password
+#   ansible.builtin.command: op read "op://{{ onepassword_ssh_vault }}/{{ onepassword_ssh_public_item }}"
+#   register: ssh_public
+#   changed_when: false
+
+# - name: Deploy SSH private key
+#   ansible.builtin.copy:
+#     content: "{{ ssh_private.stdout }}"
+#     dest: "{{ ssh_private_dest }}"
+#     mode: 0600
+
+# - name: Deploy SSH public key
+#   ansible.builtin.copy:
+#     content: "{{ ssh_public.stdout }}"
+#     dest: "{{ ssh_public_dest }}"
+#     mode: 0644
+
+- name: List items in 1Password vault
+  ansible.builtin.command: >
+    op item list --vault {{ onepassword_vault }}
+  register: vault_items
   changed_when: false
+  environment:
+    OP_SERVICE_ACCOUNT_TOKEN: "{{ onepassword_service_account_token }}"
 
-- name: Fetch SSH public key from 1Password
-  ansible.builtin.command: op read "op://{{ onepassword_ssh_vault }}/{{ onepassword_ssh_public_item }}"
-  register: ssh_public
-  changed_when: false
+- name: Parse vault items
+  ansible.builtin.set_fact:
+    vault_items_parsed: "{{ vault_items.stdout | from_json }}"
 
-- name: Deploy SSH private key
-  ansible.builtin.copy:
-    content: "{{ ssh_private.stdout }}"
-    dest: "{{ ssh_private_dest }}"
-    mode: 0600
+- name: Fetch SSH private and public keys from vault (ED25519)
+  ansible.builtin.loop: "{{ vault_items_parsed }}"
+  loop_control:
+    loop_var: vault_item
+  ansible.builtin.block:
+    - name: Fetch item details
+      ansible.builtin.command: >
+        op item get "{{ vault_item.id }}" --format json
+      register: item_details
+      changed_when: false
+      environment:
+        OP_SERVICE_ACCOUNT_TOKEN: "{{ onepassword_service_account_token }}"
 
-- name: Deploy SSH public key
-  ansible.builtin.copy:
-    content: "{{ ssh_public.stdout }}"
-    dest: "{{ ssh_public_dest }}"
-    mode: 0644
+    - name: Extract private key and write to local .ssh/id_ed25519
+      ansible.builtin.copy:
+        content: "{{ item_details.stdout | from_json | json_query('details.sections[?title==`SSH Keys`].fields[?name==`Private Key`].value') | first }}"
+        dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519"
+        mode: 0600
+
+    - name: Extract public key and write to local .ssh/id_ed25519.pub
+      ansible.builtin.copy:
+        content: "{{ item_details.stdout | from_json | json_query('details.sections[?title==`SSH Keys`].fields[?name==`Public Key`].value') | first }}"
+        dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519.pub"
+        mode: 0644
 
 
 # - name: Show Personal vault items (as list)
