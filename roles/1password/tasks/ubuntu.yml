@@ -54,6 +54,12 @@
   register: personal_items
   changed_when: false
 
-- name: Show Personal vault items
+- name: List items in Personal vault
+  ansible.builtin.command: op item list --vault "Personal"
+  register: personal_items
+  changed_when: false
+
+- name: Show Personal vault items (as list)
   ansible.builtin.debug:
-    var: personal_items.stdout
+    msg: "{{ personal_items.stdout_lines }}"
+
