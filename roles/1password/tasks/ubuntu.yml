@@ -45,7 +45,15 @@
     state: present
     insertafter: EOF
 
-
 - name: Optionally sign in to 1Password CLI (interactive)
   ansible.builtin.debug:
-    msg: "Run 'eval $(op signin {{ onepassword_domain }} {{ onepassword_email }})' manually on this machine"
+    msg: "Run 'eval $(op signin)' manually on this machine"
+
+- name: List items in Personal vault
+  ansible.builtin.command: op item list --vault "Personal"
+  register: personal_items
+  changed_when: false
+
+- name: Show Personal vault items
+  ansible.builtin.debug:
+    var: personal_items.stdout
