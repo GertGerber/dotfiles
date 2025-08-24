@@ -1,8 +1,6 @@
 ---
 - name: Bootstrap base system with OS/WSL/macOS detection
   hosts: localhost
-  vars:
-    ansible_python_interpreter: /usr/bin/python3
   connection: local
   gather_facts: yes
 
@@ -10,6 +8,7 @@
     is_wsl: false
     is_mac: false
     os_type: "{{ ansible_system | lower }}"
+    ansible_python_interpreter: /usr/bin/python3
 
   pre_tasks:
     - name: Detect WSL
