@@ -63,3 +63,23 @@
   ansible.builtin.debug:
     msg: "{{ personal_items.stdout_lines }}"
 
+- name: Get list of items in Personal vault (JSON output)
+  ansible.builtin.command: op item list --vault "Personal" --format=json
+  register: personal_items_json
+  changed_when: false
+
+- name: Parse Personal vault items
+  ansible.builtin.set_fact:
+    personal_items: "{{ personal_items_json.stdout | from_json }}"
+
+- name: Fetch details of each item
+  ansible.builtin.command: op item get {{ item.id }} --format=json
+  register: item_details
+  loop: "{{ personal_items }}"
+  loop_control:
+    label: "{{ item.title }}"
+  changed_when: false
+
+- name: Show item details
+  ansible.builtin.debug:
+    var: item_details.results
