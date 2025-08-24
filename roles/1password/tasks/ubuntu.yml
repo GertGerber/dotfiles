@@ -54,8 +54,4 @@
   register: personal_items
   changed_when: false
 
-- name: List items in Personal vault
-  ansible.builtin.command: op item list --vault "Personal"
-  register: personal_items
-  changed_when: false
 
