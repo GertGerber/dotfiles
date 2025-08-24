@@ -1,0 +1,24 @@
+---
+- name: Add Nala repository (Ubuntu/Debian)
+  ansible.builtin.apt_repository:
+    repo: "ppa:volian/nala"
+    state: present
+  become: true
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+
+- name: Install Nala
+  ansible.builtin.apt:
+    name: nala
+    state: present
+  become: true
+
+- name: Optionally configure Nala mirrors
+  ansible.builtin.command: nala fetch --auto
+  args:
+    creates: /etc/apt/sources.list.d/nala-autofetch.list
+  become: true
+  when: nala_auto_mirrors | bool

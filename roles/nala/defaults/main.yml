@@ -1,0 +1,3 @@
+---
+# If true, nala will auto-configure the fastest mirrors
+nala_auto_mirrors: true

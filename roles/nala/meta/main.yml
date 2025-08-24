@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  author: yourname
+  description: Install and configure Nala (modern APT front-end)
+  company: ""
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+dependencies: []
