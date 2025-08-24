@@ -48,3 +48,11 @@
     state: present
     backup: yes
   when: ansible_facts['env']['SHELL'] == '/usr/bin/fish' # Adjust path if necessary
+
+- name: Render Starship config
+  ansible.builtin.template:
+    src: starship.toml.j2
+    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_gid | default(1000) }}"
+    mode: "0644"

@@ -1,0 +1,8 @@
+starship_add_newline: true
+starship_prompt_order:
+  - username
+  - directory
+  - git_branch
+starship_directory_read_only: " 🔒"
+starship_git_branch_symbol: "🌿 "
+starship_username_style_user: "cyan"

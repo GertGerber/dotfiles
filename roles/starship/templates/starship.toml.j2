@@ -1,34 +1,67 @@
-add_newline = false
+# Starship prompt configuration
+# Generated via Ansible
+# {{ ansible_date_time.iso8601 }}
+
+add_newline = {{ starship_add_newline | default('false') | lower }}
+
+prompt_order = [
+    {% for module in starship_prompt_order | default([
+        "username",
+        "hostname",
+        "directory",
+        "git_branch",
+        "git_state",
+        "git_status",
+        "cmd_duration",
+        "line_break",
+        "character",
+        "time"
+    ]) %}
+    "{{ module }}"{% if not loop.last %}, {% endif %}
+    {% endfor %}
+]
 
 [character]
-success_symbol = "[✔](bold green)"
-error_symbol = "[✖](bold red)"
+symbol = "{{ starship_character_symbol | default('❯') }}"
+vicmd_symbol = "{{ starship_character_vicmd_symbol | default('❮') }}"
+use_symbol_for_status = {{ starship_character_use_symbol_for_status | default(true) | lower }}
+success_symbol = "{{ starship_character_success_symbol | default('[✔](bold green)') }}"
+error_symbol = "{{ starship_character_error_symbol | default('[✖](bold red)') }}"
 
 [directory]
-truncation_length = 3
-truncate_to_repo = false
-style = "blue bold"
+truncate_to_repo = {{ starship_directory_truncate | default(false) | lower }}
+truncation_length = {{ starship_directory_truncation_length | default(3) }}
+style = "{{ starship_directory_style | default('blue bold') }}"
+read_only = "{{ starship_directory_read_only | default(' ') }}"
 
 [git_branch]
-symbol = " "
-style = "purple bold"
+symbol = "{{ starship_git_branch_symbol | default(' ') }}"
+style = "{{ starship_git_branch_style | default('purple bold') }}"
 
 [git_status]
-conflicted = "✖ "
-ahead = "⇡${count}"
-behind = "⇣${count}"
-staged = "+${count}"
-deleted = "✖ ${count}"
-modified = "~${count}"
-untracked = "?"
-style = "bold yellow"
+conflicted = "{{ starship_git_status_conflicted | default('✖ ') }}"
+ahead = "{{ starship_git_status_ahead | default('⇡${count}') }}"
+behind = "{{ starship_git_status_behind | default('⇣${count}') }}"
+staged = "{{ starship_git_status_staged | default('+${count}') }}"
+deleted = "{{ starship_git_status_deleted | default('✖ ${count}') }}"
+modified = "{{ starship_git_status_modified | default('~${count}') }}"
+untracked = "{{ starship_git_status_untracked | default('?') }}"
+style = "{{ starship_git_status_style | default('bold yellow') }}"
+
+[username]
+style_user = "{{ starship_username_style_user | default('bold green') }}"
+style_root = "{{ starship_username_style_root | default('bold red') }}"
+
+[hostname]
+ssh_only = {{ starship_hostname_ssh_only | default(false) | lower }}
+format = "{{ starship_hostname_format | default('on [$hostname]($style)') }}"
 
 [time]
-disabled = false
-format = "🕒 [$time]($style) "
-style = "bold cyan"
+disabled = {{ starship_time_disabled | default(false) | lower }}
+format = "{{ starship_time_format | default('🕒 [$time]($style) ') }}"
+style = "{{ starship_time_style | default('bold cyan') }}"
 
 [cmd_duration]
-min_time = 2000
-format = "⏱️ [$duration]($style) "
-style = "bold white"
+min_time = {{ starship_cmd_duration_min_time | default(2000) }}
+format = "{{ starship_cmd_duration_format | default('⏱️ [$duration]($style) ') }}"
+style = "{{ starship_cmd_duration_style | default('bold white') }}"
