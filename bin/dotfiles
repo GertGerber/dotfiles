@@ -5,6 +5,8 @@ set -euo pipefail
 # Dotfiles Installer
 # -----------------------------
 DOTFILES_DIR="$HOME/.dotfiles"
+DOTFILES_LOG="$HOME/.dotfiles.log"
+IS_FIRST_RUN="$HOME/.dotfiles_run"
 REPO_URL="https://github.com/GertGerber/dotfiles.git"
 BRANCH="main"
 CONFIG_FILE="$DOTFILES_DIR/group_vars/all.yml"
@@ -233,7 +235,24 @@ groupvars_check() {
     fi
 }
 
-
+# -----------------------------
+# Display first-run instructions
+# -----------------------------
+first_run_message() {
+    if [ ! -f "$IS_FIRST_RUN" ]; then
+        echo ""
+        echo -e "${CHECK_MARK} ${CAT_GREEN}🎉 Dotfiles installation complete!${NC}"
+        echo ""
+        echo -e "${ARROW} ${CAT_TEAL}Next steps:${NC}"
+        echo -e "   1. Customize your setup: ${CAT_LAVENDER}nvim $CONFIG_FILE${NC}"
+        echo -e "   2. Apply changes anytime: ${CAT_LAVENDER}dotfiles${NC}"
+        echo -e "   3. Get help: ${CAT_LAVENDER}https://discord.gg/5M4hjfyRBj${NC}"
+        echo ""
+        echo -e "${ARROW} ${CAT_TEAL}Please reboot your computer to complete the setup.${NC}"
+        echo ""
+        touch "$IS_FIRST_RUN"
+    fi
+}
 
 # -----------------------------
 # Run Bootstrap Playbook
@@ -258,6 +277,7 @@ main() {
     groupvars_check
     setup_alias
     run_bootstrap
+    first_run_message
     echo -e "${GREEN}🎉 Dotfiles setup complete! Run 'dotfiles' to re-run.${NC}"
 }
 
