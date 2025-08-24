@@ -1,14 +1,17 @@
+########################################
+# Filename:  roles/1password/tasks/ubuntu.yml
+########################################
 ---
-
-- name: Add 1Password apt repository key
-  ansible.builtin.apt_key:
+- name: Download 1Password apt repository key
+  ansible.builtin.get_url:
     url: https://downloads.1password.com/linux/keys/1password.asc
-    state: present
+    dest: /usr/share/keyrings/1password-archive-keyring.asc
+    mode: '0644'
   become: yes
 
-- name: Add 1Password repository
+- name: Add 1Password apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64] https://downloads.1password.com/linux/debian/amd64 stable main"
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.asc] https://downloads.1password.com/linux/debian/amd64 stable main"
     state: present
   become: yes
 
@@ -24,6 +27,7 @@
     line: 'export PATH="$PATH:/usr/local/bin"'
     state: present
     insertafter: EOF
+  notify: reload shell
 
 - name: Ensure 1Password CLI is in PATH for Zsh
   ansible.builtin.lineinfile:
@@ -31,6 +35,7 @@
     line: 'export PATH="$PATH:/usr/local/bin"'
     state: present
     insertafter: EOF
+  notify: reload shell
 
 - name: Ensure Fish config file exists
   ansible.builtin.file:
@@ -41,9 +46,10 @@
 - name: Ensure 1Password CLI is in PATH for Fish
   ansible.builtin.lineinfile:
     path: "{{ ansible_env.HOME }}/.config/fish/config.fish"
-    line: 'set -gx PATH {{ onepassword_cli_path | dirname }} $PATH'
+    line: 'set -gx PATH /usr/local/bin $PATH'
     state: present
     insertafter: EOF
+  notify: reload shell
 
 - name: Optionally sign in to 1Password CLI (interactive)
   ansible.builtin.debug:
@@ -53,7 +59,8 @@
   ansible.builtin.command: op item list --vault "Personal"
   register: personal_items
   changed_when: false
+  failed_when: false   # prevents errors if not signed in yet
 
 - name: Show Personal vault items (as list)
   ansible.builtin.debug:
-    msg: "{{ personal_items.stdout_lines }}"
+    msg: "{{ personal_items.stdout_lines | default([]) }}"

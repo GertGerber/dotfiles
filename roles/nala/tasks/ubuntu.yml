@@ -17,7 +17,7 @@
   become: true
 
 - name: Optionally configure Nala mirrors
-  ansible.builtin.command: nala fetch --auto
+  ansible.builtin.command: nala fetch --auto --yes
   args:
     creates: /etc/apt/sources.list.d/nala-autofetch.list
   become: true
