@@ -1,4 +1,13 @@
 ---
+# --------------------------------------------------------------------
+# Fonts role
+# --------------------------------------------------------------------
+
+- name: Ensure fontconfig is installed (provides fc-cache)
+  package:
+    name: fontconfig
+    state: present
+
 - name: Ensure fonts directory exists
   file:
     path: "{{ ansible_env.HOME }}/.local/share/fonts"
@@ -20,3 +29,6 @@
 
 - name: Refresh font cache
   command: fc-cache -fv
+  register: fontcache_result
+  failed_when: false
+  changed_when: fontcache_result.rc == 0
