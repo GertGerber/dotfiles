@@ -49,6 +49,12 @@
     backup: yes
   when: ansible_facts['env']['SHELL'] == '/usr/bin/fish' # Adjust path if necessary
 
+- name: Ensure ~/.config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config"
+    state: directory
+    mode: '0755'
+    
 - name: Render Starship config
   ansible.builtin.template:
     src: starship.toml.j2
