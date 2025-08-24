@@ -33,6 +33,14 @@ onepassword_domain: my.1password.com
 onepassword_email: user@example.com
 onepassword_cli_path: /usr/local/bin/op
 
+# --------------------------------------------------------------------
+# 1Password vault configuration
+# --------------------------------------------------------------------
+onepassword_ssh_vault: "GitHub SSH Key"
+onepassword_ssh_private_item: "ed25519_private_key"
+onepassword_ssh_public_item: "ed25519_public_key"
+ssh_private_dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519"
+ssh_public_dest: "{{ ansible_env.HOME }}/.ssh/id_ed25519.pub"
 
 # --------------------------------------------------------------------
 # ROLE ACTIVATION
@@ -44,6 +52,7 @@ default_roles:
   # === Core System Tools (Recommended) ===
   # - system        # Essential system configurations and base tools
   - fonts         # Developer-friendly fonts (Nerd Fonts)
+  - nala # Nala is a front-end for libapt-pkg. Specifically we interface using the python-apt api.
 
   # === Development Core ===
   - git           # Git is already installed by bootstrap. 

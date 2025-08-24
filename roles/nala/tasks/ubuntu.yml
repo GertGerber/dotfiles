@@ -1,14 +1,14 @@
 ---
-- name: Add Nala repository (Ubuntu/Debian)
-  ansible.builtin.apt_repository:
-    repo: "ppa:volian/nala"
-    state: present
-  become: true
+# - name: Add Nala repository (Ubuntu/Debian)
+#   ansible.builtin.apt_repository:
+#     repo: "ppa:volian/nala"
+#     state: present
+#   become: true
 
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: yes
-  become: true
+# - name: Update apt cache
+#   ansible.builtin.apt:
+#     update_cache: yes
+#   become: true
 
 - name: Install Nala
   ansible.builtin.apt:
