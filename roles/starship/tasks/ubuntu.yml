@@ -16,36 +16,35 @@
     state: present
   when: ubuntu_version.ansible_facts.ansible_distribution_version is version('25.04', '>=')
 
-- name: Install Starship via official script for older Ubuntu
-  shell: curl -sS https://starship.rs/install.sh | sh
+- name: Download and install Starship
+  ansible.builtin.shell: |
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
   args:
-    creates: /usr/local/bin/starship
-  when: ubuntu_version.ansible_facts.ansible_distribution_version is version('25.04', '<')
+    creates: /usr/local/bin/starship # Prevent re-running if Starship is already installed
 
-- name: Ensure Starship config directory exists
-  file:
-    path: "{{ ansible_env.HOME }}/.config/starship"
-    state: directory
-    mode: '0755'
-
-- name: Deploy Starship configuration
-  template:
-    src: starship.toml.j2
-    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ ansible_env.USER }}"
-    mode: '0644'
-
-- name: Ensure ~/.zshrc exists
-  file:
-    path: "{{ ansible_env.HOME }}/.zshrc"
-    state: touch
-    owner: "{{ ansible_user_id }}"
-    group: "{{ ansible_user_gid }}"
-    mode: '0644'
-
-- name: Ensure Starship is initialized in zsh
-  lineinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
-    line: 'eval "$(starship init zsh)"'
+- name: Configure Bash to use Starship (if using Bash)
+  ansible.builtin.lineinfile:
+    path: ~/.bashrc
+    line: 'eval "$(starship init bash)"'
+    insertafter: EOF
     state: present
+    backup: yes
+  when: ansible_facts['env']['SHELL'] == '/bin/bash'
+
+- name: Configure Zsh to use Starship (if using Zsh)
+  ansible.builtin.lineinfile:
+    path: ~/.zshrc
+    line: 'eval "$(starship init zsh)"'
+    insertafter: EOF
+    state: present
+    backup: yes
+  when: ansible_facts['env']['SHELL'] == '/bin/zsh'
+
+- name: Configure Fish to use Starship (if using Fish)
+  ansible.builtin.lineinfile:
+    path: ~/.config/fish/config.fish
+    line: 'starship init fish | source'
+    insertafter: EOF
+    state: present
+    backup: yes
+  when: ansible_facts['env']['SHELL'] == '/usr/bin/fish' # Adjust path if necessary
