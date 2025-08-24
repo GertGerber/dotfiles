@@ -32,12 +32,19 @@
     state: present
     insertafter: EOF
 
+- name: Ensure Fish config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/fish"
+    state: directory
+    mode: '0755'
+
 - name: Ensure 1Password CLI is in PATH for Fish
   ansible.builtin.lineinfile:
     path: "{{ ansible_env.HOME }}/.config/fish/config.fish"
-    line: 'set -gx PATH /usr/local/bin $PATH'
+    line: 'set -gx PATH {{ onepassword_cli_path | dirname }} $PATH'
     state: present
     insertafter: EOF
+
 
 - name: Optionally sign in to 1Password CLI (interactive)
   ansible.builtin.debug:
