@@ -27,6 +27,14 @@ nerd_font_name: "FiraCode"
 nerd_font_url: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"
 
 # --------------------------------------------------------------------
+# 1Password domain and user defaults if using 1password
+# --------------------------------------------------------------------
+onepassword_domain: my.1password.com
+onepassword_email: user@example.com
+onepassword_cli_path: /usr/local/bin/op
+
+
+# --------------------------------------------------------------------
 # ROLE ACTIVATION
 # --------------------------------------------------------------------
 # Use this section to select which roles to install.

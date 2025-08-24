@@ -1,0 +1,3 @@
+---
+- name: Reload shell
+  ansible.builtin.shell: exec $SHELL

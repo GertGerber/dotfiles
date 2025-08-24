@@ -1,0 +1,44 @@
+---
+
+- name: Add 1Password apt repository key
+  ansible.builtin.apt_key:
+    url: https://downloads.1password.com/linux/keys/1password.asc
+    state: present
+  become: yes
+
+- name: Add 1Password repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://downloads.1password.com/linux/debian/amd64 stable main"
+    state: present
+  become: yes
+
+- name: Install 1Password CLI
+  ansible.builtin.package:
+    name: 1password-cli
+    state: latest
+  become: yes
+
+- name: Ensure 1Password CLI is in PATH for Bash
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    line: 'export PATH="$PATH:/usr/local/bin"'
+    state: present
+    insertafter: EOF
+
+- name: Ensure 1Password CLI is in PATH for Zsh
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    line: 'export PATH="$PATH:/usr/local/bin"'
+    state: present
+    insertafter: EOF
+
+- name: Ensure 1Password CLI is in PATH for Fish
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.config/fish/config.fish"
+    line: 'set -gx PATH /usr/local/bin $PATH'
+    state: present
+    insertafter: EOF
+
+- name: Optionally sign in to 1Password CLI (interactive)
+  ansible.builtin.debug:
+    msg: "Run 'eval $(op signin {{ onepassword_domain }} {{ onepassword_email }})' manually on this machine"
