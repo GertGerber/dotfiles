@@ -120,20 +120,26 @@ print_banner() {
 install_dependencies() {
     echo -e "${ARROW} Checking dependencies..."
 
+    sudo apt update -y
+
     # Git
     if ! command -v git >/dev/null 2>&1; then
         echo -e "${CLOCK} Installing git..."
-        sudo apt update && sudo apt install -y git
+        sudo apt install -y git
+        hash -r   # refresh command lookup
     fi
 
     # Python3 + pip3
     if ! command -v python3 >/dev/null 2>&1; then
         echo -e "${CLOCK} Installing python3..."
-        sudo apt update && sudo apt install -y python3 python3-pip
+        sudo apt install -y python3 python3-pip
+        hash -r
     fi
+
     if ! command -v pip3 >/dev/null 2>&1; then
         echo -e "${CLOCK} Installing pip3..."
-        sudo apt update && sudo apt install -y python3-pip
+        sudo apt install -y python3-pip
+        hash -r
     fi
 
     # Ansible
@@ -141,9 +147,20 @@ install_dependencies() {
         echo -e "${CLOCK} Installing Ansible..."
         python3 -m pip install --user --upgrade ansible
         export PATH="$HOME/.local/bin:$PATH"
+        hash -r
     fi
+
+    # Final sanity check
+    for cmd in git python3 pip3 ansible; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            echo -e "${X_MARK} ${cmd} still not found after install. Aborting."
+            exit 1
+        fi
+    done
+
     echo -e "${CHECK_MARK} Dependencies installed."
 }
+
 
 # -----------------------------
 # Clone or Update dotfiles repo safely
