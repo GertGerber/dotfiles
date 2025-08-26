@@ -5,9 +5,16 @@
 #     state: present
 #   become: true
 
-- name: "Flatpak | Add Flathub remote"
+# - name: "Flatpak | Add Flathub remote"
+#   community.general.flatpak_remote:
+#     name: "flathub"
+#     flatpakrepo_url: "https://flathub.org/repo/flathub.flatpakrepo"
+#     state: present
+#   become: true
+
+- name: Add the flathub flatpak repository remote to the user installation
   community.general.flatpak_remote:
-    name: "flathub"
-    flatpakrepo_url: "https://flathub.org/repo/flathub.flatpakrepo"
+    name: flathub
     state: present
-  become: true
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    method: user
