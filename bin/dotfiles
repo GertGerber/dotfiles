@@ -1,4 +1,4 @@
-#!/bin/bash
+ubuntu#!/bin/bash
 
 # Catppuccin Mocha color codes
 NC='\033[0m'
@@ -202,6 +202,7 @@ function ubuntu_setup() {
   if ! dpkg -s ansible >/dev/null 2>&1; then
     __task "Installing Ansible (This may take a few minutes)"
     _cmd "sudo apt-get update"
+    _cmd "sudo apt-get install -y git"
     _cmd "sudo apt-get install -y software-properties-common"
     _cmd "sudo apt-add-repository -y ppa:ansible/ansible"
     _cmd "sudo apt-get update"
@@ -341,19 +342,19 @@ detect_os() {
 
 function print_banner() {
   echo ""
-  echo -e "${CAT_SAPPHIRE}  ████████╗███████╗ ██████╗██╗  ██╗██████╗ ██╗   ██╗███████╗██╗   ██╗███████╗${NC}"
-  echo -e "${CAT_SAPPHIRE}  ╚══██╔══╝██╔════╝██╔════╝██║  ██║██╔══██╗██║   ██║██╔════╝██║   ██║██╔════╝${NC}"
-  echo -e "${CAT_SAPPHIRE}     ██║   █████╗  ██║     ███████║██║  ██║██║   ██║█████╗  ██║   ██║███████╗${NC}"
-  echo -e "${CAT_SAPPHIRE}     ██║   ██╔══╝  ██║     ██╔══██║██║  ██║██║   ██║██╔══╝  ██║   ██║╚════██║${NC}"
-  echo -e "${CAT_SAPPHIRE}     ██║   ███████╗╚██████╗██║  ██║██████╔╝╚██████╔╝██║     ╚██████╔╝███████║${NC}"
-  echo -e "${CAT_SAPPHIRE}     ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝      ╚═════╝ ╚══════╝${NC}"
+  echo -e "${SEA}  ██████╗ ███████╗██████╗ ████████╗     ██████╗ ███████╗██████╗ ██████╗ ███████╗██████╗ ${ORANGE} Dotfiles Installer ${NC}"
+  echo -e "${SEA} ██╔════╝ ██╔════╝██╔══██╗╚══██╔══╝    ██╔════╝ ██╔════╝██╔══██╗██╔══██╗██╔════╝██╔══██╗${BLUE} by GertGerber ${NC}"
+  echo -e "${SEA} ██║  ███╗█████╗  ██████╔╝   ██║       ██║  ███╗█████╗  ██████╔╝██████╔╝█████╗  ██████╔╝${PURPLE} Setup your dev environment ${NC}"
+  echo -e "${SEA} ██║   ██║██╔══╝  ██╔══██╗   ██║       ██║   ██║██╔══╝  ██╔══██╗██╔══██╗██╔══╝  ██╔══██╗${YELLOW} Enjoy coding! 🚀${NC}"
+  echo -e "${SEA} ╚██████╔╝███████╗██║  ██║   ██║       ╚██████╔╝███████╗██║  ██║██████╔╝███████╗██║  ██║${GREEN} Have fun with roles! 🎉${NC}"
+  echo -e "${SEA}  ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝        ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝${NC}"
   echo ""
-  echo -e "${CAT_BLUE}      ██████╗  ██████╗ ████████╗███████╗██╗██╗     ███████╗███████╗${NC}"
-  echo -e "${CAT_BLUE}      ██╔══██╗██╔═══██╗╚══██╔══╝██╔════╝██║██║     ██╔════╝██╔════╝${NC}"
-  echo -e "${CAT_BLUE}      ██║  ██║██║   ██║   ██║   █████╗  ██║██║     █████╗  ███████╗${NC}"
-  echo -e "${CAT_BLUE}      ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║${NC}"
-  echo -e "${CAT_BLUE}      ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║${NC}"
-  echo -e "${CAT_BLUE}      ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝${NC}"
+  echo -e "${CAT_BLUE}        ██████╗  ██████╗ ████████╗███████╗██╗██╗     ███████╗███████╗${NC}"
+  echo -e "${CAT_BLUE}        ██╔══██╗██╔═══██╗╚══██╔══╝██╔════╝██║██║     ██╔════╝██╔════╝${NC}"
+  echo -e "${CAT_BLUE}        ██║  ██║██║   ██║   ██║   █████╗  ██║██║     █████╗  ███████╗${NC}"
+  echo -e "${CAT_BLUE}        ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║${NC}"
+  echo -e "${CAT_BLUE}        ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║${NC}"
+  echo -e "${CAT_BLUE}        ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝${NC}"
   echo ""
 }
 
@@ -382,7 +383,7 @@ esac
 
 if ! [[ -d "$DOTFILES_DIR" ]]; then
   __task "Downloading dotfiles repository (This may take a minute)"
-  _cmd "git clone --quiet https://github.com/TechDufus/dotfiles.git $DOTFILES_DIR"
+  _cmd "git clone --quiet https://github.com/GertGerber/dotfiles.git $DOTFILES_DIR"
   _task_done
 else
   __task "Updating dotfiles repository"
