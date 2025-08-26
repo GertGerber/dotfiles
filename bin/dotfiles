@@ -538,13 +538,22 @@ function setup_1password_cli() {
 
     if [[ -n "$email" ]]; then
       __task "Setting up 1Password CLI for $email"
+
       if ! command -v op >/dev/null 2>&1; then
         _cmd "echo '1Password CLI not installed, please install it first'"
         return 1
       fi
 
-      _cmd "op account add --address my.1password.com --email '$email'"
-      eval "$(op signin)"
+      # Only add account if not already present
+      if ! op account list 2>/dev/null | grep -q 'my.1password.com'; then
+        _cmd "op account add --address my.1password.com --email '$email'"
+      fi
+
+      # Only sign in if no active session
+      if ! op vault list >/dev/null 2>&1; then
+        eval "$(op signin)"
+      fi
+
       _task_done
     else
       echo -e "${RED} [✗]  Could not find 1pass_email in $yml${NC}"
@@ -554,6 +563,7 @@ function setup_1password_cli() {
     echo -e "${CAT_YELLOW} [!]  1password role not enabled — skipping${NC}"
   fi
 }
+
 
 # Ensure 1Password CLI is configured if needed
 setup_1password_cli
