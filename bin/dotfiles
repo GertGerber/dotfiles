@@ -1,4 +1,4 @@
-ubuntu#!/bin/bash
+#!/bin/bash
 
 # Catppuccin Mocha color codes
 NC='\033[0m'
