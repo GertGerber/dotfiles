@@ -524,12 +524,50 @@ if [[ -n "$DELETE_ROLE" ]]; then
   exit 0
 fi
 
+# -------------------------------
+# 1Password CLI setup function
+# -------------------------------
+function setup_1password_cli() {
+  local yml="$DOTFILES_DIR/group_vars/all.yml"
+
+  # Check if default_roles contains 1password
+  if grep -qE '^[[:space:]]+- 1password' "$yml"; then
+    # Extract 1pass_email from YAML
+    local email
+    email=$(grep -E '^1pass_email:' "$yml" | awk '{print $2}' | tr -d '"')
+
+    if [[ -n "$email" ]]; then
+      __task "Setting up 1Password CLI for $email"
+      if ! command -v op >/dev/null 2>&1; then
+        _cmd "echo '1Password CLI not installed, please install it first'"
+        return 1
+      fi
+
+      _cmd "op account add --address my.1password.com --email '$email'"
+      eval "$(op signin)"
+      _task_done
+    else
+      echo -e "${RED} [✗]  Could not find 1pass_email in $yml${NC}"
+      return 1
+    fi
+  else
+    echo -e "${CAT_YELLOW} [!]  1password role not enabled — skipping${NC}"
+  fi
+}
+
+# Ensure 1Password CLI is configured if needed
+setup_1password_cli
 update_ansible_galaxy $ID
 
 # confirmVaultAccess
 
 rm -f $VAULT_SECRET_FILE
 _task_done
+
+# Ensure 1Password CLI is configured if needed
+setup_1password_cli
+
+# Run the Ansible playbook
 ansible-playbook "$DOTFILES_DIR/main.yml" "${REMAINING_ARGS[@]}"
 
 popd 2>&1 > /dev/null
