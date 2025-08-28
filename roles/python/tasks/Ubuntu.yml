@@ -1,29 +1,75 @@
 ---
-# Ensure Python packages install cleanly on Ubuntu 24.04 (Noble)
-# Enables Universe and installs headers with fallbacks for 24.04 packaging.
+# Ubuntu 24.04 (Noble): ensure main/universe components exist, reset APT cache,
+# then install Python tooling.
 
+- name: "Python | Set Ubuntu codename"
+  ansible.builtin.set_fact:
+    ubuntu_codename: "{{ ansible_lsb.codename | default('noble') }}"
+
+# Ensure MAIN components
+- name: "Python | Enable Main component (base)"
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ubuntu_codename }} main"
+    filename: "ubuntu-main"
+    state: present
+  become: true
+
+- name: "Python | Enable Main component (updates)"
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ubuntu_codename }}-updates main"
+    filename: "ubuntu-main-updates"
+    state: present
+  become: true
+
+- name: "Python | Enable Main component (security)"
+  ansible.builtin.apt_repository:
+    repo: "deb http://security.ubuntu.com/ubuntu {{ ubuntu_codename }}-security main"
+    filename: "ubuntu-main-security"
+    state: present
+  become: true
+
+# Keep UNIVERSE too
 - name: "Python | Enable Universe component (base)"
   ansible.builtin.apt_repository:
-    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_lsb.codename }} universe"
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ubuntu_codename }} universe"
     filename: "ubuntu-universe"
     state: present
   become: true
 
 - name: "Python | Enable Universe component (updates)"
   ansible.builtin.apt_repository:
-    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_lsb.codename }}-updates universe"
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ubuntu_codename }}-updates universe"
     filename: "ubuntu-universe-updates"
     state: present
   become: true
 
 - name: "Python | Enable Universe component (security)"
   ansible.builtin.apt_repository:
-    repo: "deb http://security.ubuntu.com/ubuntu {{ ansible_lsb.codename }}-security universe"
+    repo: "deb http://security.ubuntu.com/ubuntu {{ ubuntu_codename }}-security universe"
     filename: "ubuntu-universe-security"
     state: present
   become: true
 
-# Base tools (no headers yet)
+# Reset & refresh cache to avoid stale/failed-lists issues
+- name: "Python | Clean APT lists"
+  ansible.builtin.file:
+    path: /var/lib/apt/lists
+    state: absent
+  become: true
+
+- name: "Python | Recreate APT lists dir"
+  ansible.builtin.file:
+    path: /var/lib/apt/lists/partial
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: "Python | apt-get update"
+  ansible.builtin.command: apt-get update
+  changed_when: false
+  become: true
+
+# Core tools (no headers yet)
 - name: "Python | Install core Python tooling"
   ansible.builtin.apt:
     name:
@@ -32,13 +78,12 @@
       - python3-pip
       - build-essential
     state: present
-    update_cache: true
   become: true
 
 # Headers vary on Noble: try meta, then versioned, then all-dev
 - name: "Python | Determine versioned dev package"
   ansible.builtin.set_fact:
-    py_dev_versioned: "python3.{{ ansible_python_version.split('.')[1] }}-dev"  # e.g., python3.12-dev
+    py_dev_versioned: "python3.{{ ansible_python_version.split('.')[1] | default('12') }}-dev"
 
 - name: "Python | Install development headers (with fallbacks)"
   block:
@@ -46,7 +91,6 @@
       ansible.builtin.apt:
         name: python3-dev
         state: present
-        update_cache: true
       become: true
   rescue:
     - block:
@@ -54,14 +98,12 @@
           ansible.builtin.apt:
             name: "{{ py_dev_versioned }}"
             state: present
-            update_cache: true
           become: true
       rescue:
         - name: "Python | Install python3-all-dev (last resort)"
           ansible.builtin.apt:
             name: python3-all-dev
             state: present
-            update_cache: true
           become: true
 
 # Optional: provide `python` shim to python3
