@@ -1,34 +1,44 @@
 ---
-- name: Helm | Add Helm GPG key
-  ansible.builtin.apt_key:
+- name: Helm | Ensure keyrings dir exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Helm | Download Helm GPG key
+  ansible.builtin.get_url:
     url: https://baltocdn.com/helm/signing.asc
-    state: present
-    keyring: /usr/share/keyrings/helm.gpg
+    dest: /tmp/helm-signing.asc
+    mode: "0644"
   become: true
 
-- name: Helm | Install apt-transport-https
-  ansible.builtin.apt:
-    name: apt-transport-https
-    state: present
+- name: Helm | Dearmor key
+  ansible.builtin.command: >
+    gpg --dearmor -o /etc/apt/keyrings/helm.gpg /tmp/helm-signing.asc
+  args:
+    creates: /etc/apt/keyrings/helm.gpg
   become: true
 
-- name: Helm | Get OS Architecture
+- name: Helm | Compute apt arch
   ansible.builtin.set_fact:
-    os_arch: "{{ ansible_machine | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}"
+    apt_arch: >-
+      {{ 'amd64' if ansible_architecture in ['x86_64'] else
+         'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
 
-- name: Helm | Add Helm APT repository
+- name: Helm | Add repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ os_arch }} signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main"
+    repo: >-
+      deb [arch={{ apt_arch }} signed-by=/etc/apt/keyrings/helm.gpg]
+      https://baltocdn.com/helm/stable/debian/ all main
     filename: helm-stable-debian
-  become: true
-
-- name: Helm | Update APT cache
-  ansible.builtin.apt:
-    update_cache: true
+    mode: "0644"
+    state: present
   become: true
 
 - name: Helm | Install Helm
   ansible.builtin.apt:
     name: helm
+    update_cache: true
     state: present
   become: true

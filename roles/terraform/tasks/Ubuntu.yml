@@ -1,19 +1,38 @@
 ---
-- name: Terraform | {{ ansible_distribution }} | Add the HashiCorp GPG key.
-  ansible.builtin.apt_key:
+- name: Terraform | Ensure keyrings dir exists
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Terraform | Add the HashiCorp GPG key
+  ansible.builtin.get_url:
     url: https://apt.releases.hashicorp.com/gpg
-    keyring: /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    state: present
+    dest: /tmp/hashicorp.gpg
+    mode: "0644"
   become: true
 
-- name: Terraform | {{ ansible_distribution }} | Add the official HashiCorp Linux repository
+- name: Terraform | Dearmor HashiCorp key
+  ansible.builtin.command: >
+    gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg /tmp/hashicorp.gpg
+  args:
+    creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  become: true
+
+- name: Terraform | Add the official HashiCorp Linux repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+    repo: >-
+      deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg]
+      https://apt.releases.hashicorp.com {{ ansible_lsb.codename }} main
+    filename: hashicorp
+    mode: "0644"
     state: present
   become: true
 
-- name: Terraform | {{ ansible_distribution }} | Install Terraform
-  apt:
+- name: Terraform | Install Terraform
+  ansible.builtin.apt:
     name: terraform
     state: present
+    update_cache: true
   become: true

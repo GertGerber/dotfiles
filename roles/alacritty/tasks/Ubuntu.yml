@@ -1,0 +1,16 @@
+---
+# Install Alacritty from Ubuntu repositories (24.04)
+
+- name: Ensure universe repository is enabled
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_lsb.codename }} universe"
+    state: present
+    filename: "ubuntu-universe"
+  become: true
+
+- name: Install Alacritty
+  ansible.builtin.apt:
+    name: alacritty
+    state: present
+    update_cache: true
+  become: true

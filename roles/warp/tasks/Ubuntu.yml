@@ -1,9 +1,23 @@
 ---
-- name: "Warp | Add APT Key"
-  ansible.builtin.apt_key:
+- name: "Warp | Ensure keyrings dir exists"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: "Warp | Download Warp key"
+  ansible.builtin.get_url:
     url: https://releases.warp.dev/linux/keys/warp.asc
-    keyring: /etc/apt/keyrings/warpdotdev.gpg
-    state: present
+    dest: /tmp/warp.asc
+    mode: "0644"
+  become: true
+
+- name: "Warp | Dearmor key"
+  ansible.builtin.command: >
+    gpg --dearmor -o /etc/apt/keyrings/warpdotdev.gpg /tmp/warp.asc
+  args:
+    creates: /etc/apt/keyrings/warpdotdev.gpg
   become: true
 
 - name: "Warp | Add APT Repository"

@@ -1,26 +1,49 @@
 ---
 - name: "Azure | Install dependencies"
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - ca-certificates
+      - curl
+      - lsb-release
+      - gnupg
     state: present
+    update_cache: true
   become: true
-  loop:
-    - ca-certificates
-    - curl
-    - apt-transport-https
-    - lsb-release
-    - gnupg
 
-- name: "Azure | Download and Add Azure-CLI Key to Apt-Get Keyring"
-  ansible.builtin.apt_key:
+- name: "Azure | Ensure keyrings dir exists"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: "Azure | Download Microsoft GPG key"
+  ansible.builtin.get_url:
     url: "https://packages.microsoft.com/keys/microsoft.asc"
-    keyring: "/etc/apt/trusted.gpg.d/microsoft.gpg"
-    state: present
+    dest: "/tmp/microsoft.asc"
+    mode: "0644"
   become: true
 
-- name: "Azure | Add Azure Repository into /etc/apt/sources.list"
+- name: "Azure | Dearmor Microsoft key"
+  ansible.builtin.command: >
+    gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg /tmp/microsoft.asc
+  args:
+    creates: /etc/apt/keyrings/microsoft.gpg
+  become: true
+
+- name: "Azure | Compute apt arch"
+  ansible.builtin.set_fact:
+    apt_arch: >-
+      {{ 'amd64' if ansible_architecture in ['x86_64'] else
+         'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
+
+- name: "Azure | Add Azure CLI repository"
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ ansible_machine | replace('x86_64', 'amd64') }}] https://packages.microsoft.com/repos/azure-cli/ {{ ansible_distribution_release | lower }} main"
+    repo: >-
+      deb [arch={{ apt_arch }} signed-by=/etc/apt/keyrings/microsoft.gpg]
+      https://packages.microsoft.com/repos/azure-cli/ stable main
+    filename: azure-cli
+    mode: "0644"
     state: present
   become: true
 

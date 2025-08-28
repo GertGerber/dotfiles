@@ -16,50 +16,61 @@
     nala_is_installed: false
   when: nala_cmd.stdout|length == 0
 
-- name: "Nala | Install Nala APT Repo (for older Ubuntu)"
-  block:
-    - name: "Nala | Add nala repo gpg key"
-      apt_key:
-        url: "https://deb.volian.org/volian/scar.key"
-        keyring: /etc/apt/trusted.gpg.d/volian-archive-scar-unstable.gpg
-        state: present
-
-    - name: "Nala | Add nala repository source"
-      apt_repository:
-        repo: "deb [arch=amd64,arm64,armhf] http://deb.volian.org/volian/ scar main"
-        state: present
-
-  become: true
-  when: 
-    - not nala_is_installed
-    - ansible_distribution_major_version|int < 24
-
+# Ubuntu 24+ : Nala is in the Ubuntu repos
 - name: "Nala | Install Nala (Ubuntu 24+)"
   ansible.builtin.apt:
     name: nala
     state: present
     update_cache: true
   become: true
-  when: 
+  when:
     - not nala_is_installed
     - ansible_distribution_major_version|int >= 24
 
-- name: "Nala | Install Nala (Ubuntu 22)"
-  ansible.builtin.apt:
-    name: nala
-    state: present
-    update_cache: true
-  become: true
-  when: 
-    - not nala_is_installed
-    - ansible_distribution_major_version == "22"
+# Older Ubuntu: add Volian repository with signed-by keyring
+- name: "Nala | Setup Volian repository for older Ubuntu"
+  block:
+    - name: "Nala | Ensure keyring dir exists"
+      ansible.builtin.file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: "0755"
 
-- name: "Nala | Install Nala-legacy (Ubuntu 20)"
-  apt:
-    name: nala-legacy
-    state: present
-    update_cache: true
+    - name: "Nala | Download Volian scar key"
+      ansible.builtin.get_url:
+        url: "https://deb.volian.org/volian/scar.key"
+        dest: /tmp/volian-scar.key
+        mode: "0644"
+
+    - name: "Nala | Dearmor Volian key"
+      ansible.builtin.command: >
+        gpg --dearmor -o /usr/share/keyrings/volian-archive-scar-unstable.gpg /tmp/volian-scar.key
+      args:
+        creates: /usr/share/keyrings/volian-archive-scar-unstable.gpg
+
+    - name: "Nala | Add Volian repo (scar)"
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/volian-archive-scar-unstable.gpg] https://deb.volian.org/volian/ scar main"
+        filename: "volian-scar"
+        mode: "0644"
+        state: present
+
+    - name: "Nala | Install Nala (Ubuntu 22)"
+      ansible.builtin.apt:
+        name: nala
+        state: present
+        update_cache: true
+      when:
+        - ansible_distribution_major_version == "22"
+
+    - name: "Nala | Install Nala-legacy (Ubuntu 20)"
+      ansible.builtin.apt:
+        name: nala-legacy
+        state: present
+        update_cache: true
+      when:
+        - ansible_distribution_major_version == "20"
   become: true
-  when: 
+  when:
     - not nala_is_installed
-    - ansible_distribution_major_version == "20"
+    - ansible_distribution_major_version|int < 24

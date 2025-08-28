@@ -1,21 +1,44 @@
 ---
-- name: "PowerShell | Download and Add Powershell Key to Apt-Get Keyring"
-  ansible.builtin.apt_key:
+- name: "PowerShell | Ensure keyrings dir exists"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: "PowerShell | Download Microsoft key"
+  ansible.builtin.get_url:
     url: "https://packages.microsoft.com/keys/microsoft.asc"
-    keyring: "/etc/apt/trusted.gpg.d/microsoft.gpg"
-    state: present
+    dest: "/tmp/microsoft.asc"
+    mode: "0644"
   become: true
 
-- name: "PowerShell | Add Powershell Repository into /etc/apt/sources.list"
+- name: "PowerShell | Dearmor Microsoft key"
+  ansible.builtin.command: >
+    gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg /tmp/microsoft.asc
+  args:
+    creates: /etc/apt/keyrings/microsoft.gpg
+  become: true
+
+- name: "PowerShell | Compute apt arch"
+  ansible.builtin.set_fact:
+    apt_arch: >-
+      {{ 'amd64' if ansible_architecture in ['x86_64'] else
+         'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
+
+- name: "PowerShell | Add repository"
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ ansible_machine | replace('x86_64', 'amd64') }}] https://packages.microsoft.com/{{ ansible_distribution | lower }}/{{ ansible_distribution_version }}/prod {{ ansible_distribution_release | lower }} main"
+    repo: >-
+      deb [arch={{ apt_arch }} signed-by=/etc/apt/keyrings/microsoft.gpg]
+      https://packages.microsoft.com/ubuntu/{{ ansible_distribution_version }}/prod {{ ansible_lsb.codename }} main
+    filename: microsoft-prod
+    mode: "0644"
     state: present
   become: true
 
-- name: "PowerShell | Install Powershell"
+- name: "PowerShell | Install powershell"
   ansible.builtin.apt:
-    name:
-      - powershell
+    name: powershell
     update_cache: true
     state: present
   become: true
