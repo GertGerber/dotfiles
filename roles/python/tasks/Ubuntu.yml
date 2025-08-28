@@ -1,17 +1,43 @@
 ---
-- name: "Python | Install"
-  ansible.builtin.apt:
-    name:
-      - python3
-      - python3-pip
-      - python3-venv
+# Ensure Python packages install cleanly on Ubuntu 24.04 (Noble)
+# Fix: enable Universe pockets so python3-pip is available.
+
+- name: "Python | Enable Universe component (base)"
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_lsb.codename }} universe"
+    filename: "ubuntu-universe"
     state: present
   become: true
 
-- name: "Python | Install pip packages"
-  when: ansible_distribution_major_version | int <= 22
-  ansible.builtin.pip:
-    name: "{{ item }}"
+- name: "Python | Enable Universe component (updates)"
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_lsb.codename }}-updates universe"
+    filename: "ubuntu-universe-updates"
     state: present
-  loop:
-    - shell-gpt==0.9.0
+  become: true
+
+- name: "Python | Enable Universe component (security)"
+  ansible.builtin.apt_repository:
+    repo: "deb http://security.ubuntu.com/ubuntu {{ ansible_lsb.codename }}-security universe"
+    filename: "ubuntu-universe-security"
+    state: present
+  become: true
+
+- name: "Python | Install core Python tooling"
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+      - python3-dev
+      - python3-pip
+      - build-essential
+    state: present
+    update_cache: true
+  become: true
+
+# Optional: provide `python` shim to python3 (handy for scripts/tools)
+- name: "Python | Ensure 'python' points to python3"
+  ansible.builtin.apt:
+    name: python-is-python3
+    state: present
+  become: true
