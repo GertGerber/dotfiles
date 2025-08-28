@@ -1,6 +1,4 @@
 ---
-# Helm on Ubuntu 24.04 — standardise keyring and repo, remove conflicts first
-
 - name: Helm | Set constants
   ansible.builtin.set_fact:
     helm_keyring_path: /etc/apt/keyrings/helm.gpg
@@ -12,7 +10,6 @@
     mode: "0755"
   become: true
 
-# Remove any old/rogue list files that reference a different signed-by path
 - name: Helm | Remove legacy Helm repo files (conflicting signed-by)
   ansible.builtin.file:
     path: "{{ item }}"
@@ -27,7 +24,7 @@
     mode: "0644"
   become: true
 
-- name: Helm | Dearmor key
+- name: Helm | Dearmor key (standardise path)
   ansible.builtin.command: >
     gpg --dearmor -o {{ helm_keyring_path }} /tmp/helm-signing.asc
   args:
@@ -40,7 +37,7 @@
       {{ 'amd64' if ansible_architecture in ['x86_64'] else
          'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
 
-- name: Helm | Add repository (signed-by in /etc/apt/keyrings)
+- name: Helm | Add repository (single, clean entry)
   ansible.builtin.apt_repository:
     repo: >-
       deb [arch={{ apt_arch }} signed-by={{ helm_keyring_path }}]
