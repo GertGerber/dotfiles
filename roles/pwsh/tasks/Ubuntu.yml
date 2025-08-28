@@ -1,10 +1,33 @@
 ---
+- name: "PowerShell | Constants"
+  ansible.builtin.set_fact:
+    ms_keyring_path: /etc/apt/keyrings/microsoft.gpg
+    ms_repo_url: "https://packages.microsoft.com/ubuntu/{{ ansible_distribution_version }}/prod"
+    ms_codename: "{{ ansible_lsb.codename }}"
+
 - name: "PowerShell | Ensure keyrings dir exists"
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: "0755"
   become: true
+
+# Remove any previous microsoft repo files that may not use signed-by
+- name: "PowerShell | Remove legacy Microsoft repo files"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ query('fileglob', '/etc/apt/sources.list.d/*microsoft*.list') + ['/etc/apt/sources.list'] }}"
+  become: true
+
+# If /etc/apt/sources.list exists, ensure no microsoft lines remain
+- name: "PowerShell | Strip microsoft lines from main sources.list"
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list
+    regexp: '.*packages\.microsoft\.com.*\n?'
+    replace: ''
+  become: true
+  when: ansible_facts['distribution'] == "Ubuntu"
 
 - name: "PowerShell | Download Microsoft key"
   ansible.builtin.get_url:
@@ -15,9 +38,9 @@
 
 - name: "PowerShell | Dearmor Microsoft key"
   ansible.builtin.command: >
-    gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg /tmp/microsoft.asc
+    gpg --dearmor -o {{ ms_keyring_path }} /tmp/microsoft.asc
   args:
-    creates: /etc/apt/keyrings/microsoft.gpg
+    creates: "{{ ms_keyring_path }}"
   become: true
 
 - name: "PowerShell | Compute apt arch"
@@ -26,11 +49,11 @@
       {{ 'amd64' if ansible_architecture in ['x86_64'] else
          'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
 
-- name: "PowerShell | Add repository"
+- name: "PowerShell | Add repository (single, clean entry)"
   ansible.builtin.apt_repository:
     repo: >-
-      deb [arch={{ apt_arch }} signed-by=/etc/apt/keyrings/microsoft.gpg]
-      https://packages.microsoft.com/ubuntu/{{ ansible_distribution_version }}/prod {{ ansible_lsb.codename }} main
+      deb [arch={{ apt_arch }} signed-by={{ ms_keyring_path }}]
+      {{ ms_repo_url }} {{ ms_codename }} main
     filename: microsoft-prod
     mode: "0644"
     state: present
