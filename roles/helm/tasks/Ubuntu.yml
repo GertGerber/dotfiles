@@ -1,9 +1,23 @@
 ---
+# Helm on Ubuntu 24.04 — standardise keyring and repo, remove conflicts first
+
+- name: Helm | Set constants
+  ansible.builtin.set_fact:
+    helm_keyring_path: /etc/apt/keyrings/helm.gpg
+
 - name: Helm | Ensure keyrings dir exists
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: "0755"
+  become: true
+
+# Remove any old/rogue list files that reference a different signed-by path
+- name: Helm | Remove legacy Helm repo files (conflicting signed-by)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ query('fileglob', '/etc/apt/sources.list.d/*helm*.list') + query('fileglob', '/etc/apt/sources.list.d/*baltocdn*.list') }}"
   become: true
 
 - name: Helm | Download Helm GPG key
@@ -15,9 +29,9 @@
 
 - name: Helm | Dearmor key
   ansible.builtin.command: >
-    gpg --dearmor -o /etc/apt/keyrings/helm.gpg /tmp/helm-signing.asc
+    gpg --dearmor -o {{ helm_keyring_path }} /tmp/helm-signing.asc
   args:
-    creates: /etc/apt/keyrings/helm.gpg
+    creates: "{{ helm_keyring_path }}"
   become: true
 
 - name: Helm | Compute apt arch
@@ -26,10 +40,10 @@
       {{ 'amd64' if ansible_architecture in ['x86_64'] else
          'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
 
-- name: Helm | Add repository
+- name: Helm | Add repository (signed-by in /etc/apt/keyrings)
   ansible.builtin.apt_repository:
     repo: >-
-      deb [arch={{ apt_arch }} signed-by=/etc/apt/keyrings/helm.gpg]
+      deb [arch={{ apt_arch }} signed-by={{ helm_keyring_path }}]
       https://baltocdn.com/helm/stable/debian/ all main
     filename: helm-stable-debian
     mode: "0644"
