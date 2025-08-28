@@ -1,27 +1,75 @@
-- name: "SSH | Get [{{ item.name }}] key from Vault"
-  ansible.builtin.command: "op read --account my.1password.com '{{ item.vault_path }}/private_key?ssh-format=openssh'"
-  register: op_private_key
+---
+# Fetch SSH keys from 1Password and place them into ~/.ssh
+# Assumes the 1Password role ensured 'op' is installed and set auth-mode facts.
+
+- name: "SSH | Ensure ~/.ssh exists with correct perms"
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.ssh"
+    state: directory
+    mode: "0700"
+
+- name: "SSH | Verify 'op' CLI availability"
+  ansible.builtin.command: op --version
+  register: op_check
   changed_when: false
- # no_log: true
+  failed_when: op_check.rc != 0
 
-- name: "SSH | Get [{{ item.name }}] public key from Vault"
-  ansible.builtin.command: "op read --account my.1password.com '{{ item.vault_path }}/public_key'"
-  register: op_public_key
+# Expect loop items like:
+# - { name: "id_ed25519", vault_path: "op://Personal/GitHub SSH Key" }
+- name: "SSH | Get [{{ item.name }}] key from 1Password"
+  ansible.builtin.command: >
+    op read
+    --account {{ op_account_domain | default('my.1password.com') }}
+    "{{ item.vault_path }}/private_key?ssh-format=openssh"
+  register: op_key_read
   changed_when: false
- # no_log: true
+  environment:
+    OP_SERVICE_ACCOUNT_TOKEN: "{{ op_service_account_token_effective | default(lookup('env','OP_SERVICE_ACCOUNT_TOKEN')) }}"
+  loop: "{{ ssh_keys | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: op_key_read.rc != 0
 
-- name: "SSH | Copy SSH keys"
-  block:
-    - name: "SSH | Deploy [{{ item.name }}] private key"
-      ansible.builtin.copy:
-        dest: "{{ ansible_user_dir }}/.ssh/{{ item.name }}"
-        content: "{{ op_private_key.stdout }}\n"
-        mode: "0600"
- #     no_log: true
+- name: "SSH | Write private key"
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.ssh/{{ item.item.name }}"
+    content: "{{ item.stdout }}"
+    mode: "0600"
+  loop: "{{ op_key_read.results }}"
+  when: item.rc == 0
+  loop_control:
+    label: "{{ item.item.name }}"
 
-    - name: "SSH | Deploy [{{ item.name }}] public key"
-      ansible.builtin.copy:
-        dest: "{{ ansible_user_dir }}/.ssh/{{ item.name }}.pub"
-        content: "{{ op_public_key.stdout }}"
-        mode: "0644"
-  #    no_log: true
+# Optional: read public key if stored
+- name: "SSH | Try read public key (optional)"
+  ansible.builtin.command: >
+    op read
+    --account {{ op_account_domain | default('my.1password.com') }}
+    "{{ item.vault_path }}/public_key"
+  register: op_pub_read
+  changed_when: false
+  failed_when: false
+  environment:
+    OP_SERVICE_ACCOUNT_TOKEN: "{{ op_service_account_token_effective | default(lookup('env','OP_SERVICE_ACCOUNT_TOKEN')) }}"
+  loop: "{{ ssh_keys | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: "SSH | Write public key (if present)"
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.ssh/{{ item.item.name }}.pub"
+    content: "{{ item.stdout }}"
+    mode: "0644"
+  when: item.rc == 0 and (item.stdout | length) > 0
+  loop: "{{ op_pub_read.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+- name: "SSH | Ensure permissions and ownership"
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.ssh"
+    state: directory
+    mode: "0700"
+    recurse: true
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_gid | default(ansible_user_id) }}"
