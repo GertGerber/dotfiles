@@ -1,5 +1,8 @@
 ---
-# Installs 1Password (GUI app) on Ubuntu 24.04 with signed repo + debsig
+# Installs 1Password CLI on Ubuntu 24.04 and prepares 'op' usage for other roles
+# - Modern signed-by repo (arch-specific URL)
+# - debsig policy for package verification
+# - Exposes facts about 1Password auth mode for downstream roles (e.g., ssh)
 
 - name: Ensure keyring & debsig directories exist
   ansible.builtin.file:
@@ -47,7 +50,7 @@
       {{ 'amd64' if ansible_architecture in ['x86_64'] else
          'arm64' if ansible_architecture in ['aarch64','arm64'] else ansible_architecture }}
 
-# IMPORTANT: the repo URL must include /{{ apt_arch }} (amd64 or arm64)
+# IMPORTANT: repo URL must include /{{ apt_arch }} (amd64 or arm64)
 - name: Add 1Password APT repository (signed-by, arch-specific URL)
   ansible.builtin.apt_repository:
     repo: >-
@@ -58,10 +61,41 @@
     state: present
   become: true
 
-# Install the app (GUI). If you want CLI only, change to 1password-cli.
-- name: Install 1Password
+- name: Install 1Password CLI
   ansible.builtin.apt:
-    name: 1password
+    name: 1password-cli
     update_cache: true
     state: present
   become: true
+
+# --- Prepare 'op' usage for downstream roles (no interactive signin here) ---
+
+- name: Check 1Password CLI availability
+  ansible.builtin.command: op --version
+  register: op_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail if 'op' is not available after install
+  ansible.builtin.fail:
+    msg: "1Password CLI (op) is not available on PATH after install."
+  when: op_check.rc != 0
+
+# Determine auth mode: service account token vs user session
+- name: Determine 1Password auth mode
+  ansible.builtin.set_fact:
+    op_account_domain: "{{ op_account_domain | default('my.1password.com') }}"
+    op_service_account_token_effective: >-
+      {{ lookup('env','OP_SERVICE_ACCOUNT_TOKEN') | default(op_service_account_token | default('', true), true) }}
+    op_auth_mode: >-
+      {{ 'service' if (lookup('env','OP_SERVICE_ACCOUNT_TOKEN') | length > 0)
+         or (op_service_account_token | default('', true) | length > 0)
+         else 'session' }}
+
+- name: Note 1Password auth mode
+  ansible.builtin.debug:
+    msg:
+      - "1Password auth mode: {{ op_auth_mode }}"
+      - >-
+        {{ 'Using OP_SERVICE_ACCOUNT_TOKEN from env/vars.' if op_auth_mode == 'service'
+           else 'Using user session. If a downstream task fails, run:  eval \"$(op signin ' ~ op_account_domain ~ ')\"  and re-run.' }}
