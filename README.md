@@ -50,7 +50,7 @@ No prerequisites needed - the bootstrap script handles everything automatically.
 **Want it fast?** Run this one command (5-10 minutes):
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/TechDufus/dotfiles/main/bin/dotfiles)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/GertGerber/dotfiles/main/bin/dotfiles)"
 ```
 
 **What happens:**
