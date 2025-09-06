@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ========= Styling (Catppuccin Mocha) =========
+NC='\033[0m'; BOLD='\033[1m'
+CAT_RED='\033[38;2;243;139;168m'; CAT_GREEN='\033[38;2;166;227;161m'
+CAT_YELLOW='\033[38;2;249;226;175m'; CAT_SAPPHIRE='\033[38;2;116;199;236m'
+CAT_TEXT='\033[38;2;205;214;244m'; CAT_OVERLAY1='\033[38;2;127;132;156m'
+OK="${CAT_GREEN}[✓]${NC}"; FAIL="${CAT_RED}[✗]${NC}"; INFO="${CAT_SAPPHIRE}»${NC}"
+
+# ========= Repo / Paths =========
+REPO_URL="https://github.com/GertGerber/dotfiles.git"
+DOTFILES_DIR="${HOME}/.dotfiles"
+LOG="${HOME}/.dotfiles.log"
+SPINNER_PID=""; TASK=""
+
+# ========= Spinner & helpers =========
+_spinner() {
+  local t="$1"; local c=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  tput civis; tput sc
+  while true; do for ch in "${c[@]}"; do
+    tput rc; tput el; printf "${CAT_OVERLAY1}[${CAT_SAPPHIRE}%s${CAT_OVERLAY1}] ${CAT_TEXT}%s${NC}" "$ch" "$t"
+    sleep 0.08
+  done; done
+}
+task() { [[ -n "${TASK:-}" && -n "${SPINNER_PID:-}" ]] && task_done; TASK="$1"; _spinner "$TASK" & SPINNER_PID=$!; disown "$SPINNER_PID" 2>/dev/null || true; }
+task_done() { [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null || true; wait "$SPINNER_PID" 2>/dev/null || true; SPINNER_PID=""; tput cnorm; printf "\r\033[K${OK} ${CAT_TEXT}%s${NC}\n" "$TASK"; TASK=""; }
+cleanup(){ [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null || true; tput cnorm; }
+trap cleanup EXIT INT TERM
+
+run() {
+  : >"$LOG"
+  if eval "$1" 1>>"$LOG" 2>>"$LOG"; then
+    true
+  else
+    [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null || true; tput cnorm
+    printf "\r\033[K${FAIL} ${CAT_TEXT}%s${NC}\n" "$TASK"
+    sed -e "s/^/    ${CAT_YELLOW}| ${NC}/" "$LOG"
+    exit 1
+  fi
+}
+
+# ========= OS detection =========
+is_wsl(){ grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null || grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; }
+is_linux(){ [[ "$(uname -s)" == "Linux" ]]; }
+is_darwin(){ [[ "$(uname -s)" == "Darwin" ]]; }
+is_msys(){ case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) return 0;; *) return 1;; esac; }
+distro_id(){ source /etc/os-release 2>/dev/null || true; echo "${ID:-unknown}"; }
+
+# ========= Bootstrap package managers =========
+apt_bootstrap() {
+  task "Installing Ansible & chezmoi (apt)"
+  run "sudo apt-get update -y"
+  run "sudo apt-get install -y git curl unzip python3 python3-pip ansible"
+  if ! command -v chezmoi >/dev/null 2>&1; then
+    run 'sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"'
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  task_done
+}
+
+pacman_bootstrap() {
+  task "Installing Ansible & chezmoi (pacman)"
+  run "sudo pacman -Sy --noconfirm git curl unzip python ansible"
+  if ! command -v chezmoi >/dev/null 2>&1; then run "sudo pacman -S --noconfirm chezmoi"; fi
+  task_done
+}
+
+dnf_bootstrap() {
+  task "Installing Ansible & chezmoi (dnf)"
+  run "sudo dnf install -y git curl unzip python3 python3-pip ansible"
+  if ! command -v chezmoi >/dev/null 2>&1; then run "sudo dnf install -y chezmoi"; fi
+  task_done
+}
+
+brew_bootstrap() {
+  if ! command -v brew >/dev/null 2>&1; then
+    task "Installing Homebrew"
+    run '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+    task_done
+    eval "$(/opt/homebrew/bin/brew shellenv)" 2>/dev/null || true
+    eval "$(/usr/local/bin/brew shellenv)" 2>/dev/null || true
+  fi
+  task "Installing Ansible & chezmoi (brew)"
+  run "brew install ansible chezmoi git"
+  task_done
+}
+
+# ========= Repo management =========
+ensure_repo() {
+  if [[ ! -d "$DOTFILES_DIR" ]]; then
+    task "Cloning dotfiles"
+    run "git clone --quiet \"$REPO_URL\" \"$DOTFILES_DIR\""
+    task_done
+  else
+    task "Updating dotfiles"
+    (cd "$DOTFILES_DIR" && run "git pull --quiet")
+    task_done
+  fi
+}
+
+detect_source() {
+  if [[ -d "$DOTFILES_DIR/dotfiles" ]]; then
+    echo "$DOTFILES_DIR/dotfiles"
+  else
+    echo "$DOTFILES_DIR"
+  fi
+}
+
+# ========= Configure Unix (Ansible + chezmoi) =========
+configure_unix() {
+  local SRC; SRC="$(detect_source)"
+  if [[ -f "$DOTFILES_DIR/requirements/common.yml" ]]; then
+    task "Installing Ansible Galaxy roles"
+    run "ansible-galaxy install -r \"$DOTFILES_DIR/requirements/common.yml\""
+    task_done
+  fi
+
+  if command -v chezmoi >/dev/null 2>&1; then
+    task "Applying dotfiles (chezmoi)"
+    run "chezmoi init --apply --source=\"$SRC\""
+    task_done
+  fi
+
+  if [[ -f "$DOTFILES_DIR/main.yml" ]]; then
+    task "Running Ansible playbook"
+    run "ansible-playbook \"$DOTFILES_DIR/main.yml\""
+    task_done
+  fi
+}
+
+# ========= Windows provisioning via heredoc (winget/choco + chezmoi) =========
+windows_bootstrap() {
+  task "Provisioning Windows host"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command - <<'POWERSHELL'
+$ErrorActionPreference = "Stop"
+function Have($cmd){ $null -ne (Get-Command $cmd -ErrorAction SilentlyContinue) }
+
+Write-Host "[*] Checking winget…" -ForegroundColor Cyan
+if (-not (Have "winget")) {
+  Write-Host "winget not found → installing Chocolatey as fallback" -ForegroundColor Yellow
+  Set-ExecutionPolicy Bypass -Scope Process -Force
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+  Invoke-Expression ((New-Object Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+}
+
+$apps = @("Git.Git","Microsoft.VisualStudioCode","Microsoft.WindowsTerminal","twpayne.chezmoi")
+foreach($id in $apps){
+  try {
+    winget install --id $id --silent --accept-package-agreements --accept-source-agreements | Out-Null
+  } catch {
+    if (Have "choco") { choco install $id -y --no-progress | Out-Null }
+  }
+}
+
+$repo = "https://github.com/GertGerber/dotfiles.git"
+$dot  = Join-Path $env:USERPROFILE ".dotfiles"
+
+if (-not (Test-Path $dot)) {
+  if (Have "git") { git clone --quiet $repo $dot } else { throw "Git missing even after install." }
+} else {
+  Push-Location $dot; git pull --quiet; Pop-Location
+}
+
+if (Have "chezmoi") {
+  $src = (Test-Path (Join-Path $dot 'dotfiles')) ? (Join-Path $dot 'dotfiles') : $dot
+  Push-Location $dot
+  chezmoi init --apply --source $src
+  Pop-Location
+}
+
+Write-Host "[✓] Windows provisioning complete" -ForegroundColor Green
+POWERSHELL
+  task_done
+}
+
+banner() {
+  echo -e "${CAT_SAPPHIRE}${BOLD}== Dotfiles Bootstrap ==${NC}"
+  echo -e "${CAT_TEXT}Repo: ${REPO_URL}${NC}"
+}
+
+# ========= Main =========
+banner
+
+if is_darwin; then
+  brew_bootstrap
+  ensure_repo
+  configure_unix
+  exit 0
+fi
+
+if is_linux; then
+  if is_wsl; then
+    printf "${INFO} ${CAT_TEXT}Detected WSL (Linux userland + Windows host).${NC}\n"
+    case "$(distro_id)" in
+      ubuntu|debian) apt_bootstrap;;
+      arch)          pacman_bootstrap;;
+      fedora)        dnf_bootstrap;;
+      *)             apt_bootstrap;;
+    esac
+    ensure_repo
+    configure_unix
+    windows_bootstrap
+    exit 0
+  fi
+  case "$(distro_id)" in
+    ubuntu|debian) apt_bootstrap;;
+    arch)          pacman_bootstrap;;
+    fedora)        dnf_bootstrap;;
+    *)             apt_bootstrap;;
+  esac
+  ensure_repo
+  configure_unix
+  exit 0
+fi
+
+if is_msys; then
+  # Git Bash / MSYS2 / Cygwin on Windows
+  ensure_repo
+  windows_bootstrap
+  # Optionally apply Unix-style dotfiles into Git Bash as well if chezmoi present
+  if command -v chezmoi >/dev/null 2>&1; then configure_unix; fi
+  exit 0
+fi
+
+printf "${FAIL} ${CAT_TEXT}Unsupported or undetected OS.${NC}\n"
+exit 1
