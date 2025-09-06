@@ -1,0 +1,31 @@
+# requirements/ansible.yml
+---
+collections:
+  # Core/basics
+  - name: community.general        # Huge grab-bag of modules, filters, plugins
+  - name: ansible.posix            # POSIX users/groups, mounts, sysctls, etc.
+  - name: ansible.utils            # Lookups, filters, callback plugins
+
+  # Containers & Kubernetes
+  - name: community.docker         # Docker engine, compose, login, networks
+  - name: containers.podman        # Podman-native equivalent (rootless-friendly)
+  - name: kubernetes.core          # K8s modules, k8s_info, k8s_auth, helm support
+
+  # Security, secrets & tooling
+  - name: community.crypto         # OpenSSL/SSH key/cert generation & PKI tasks
+  - name: community.sops           # Seamless use of SOPS-encrypted vars/files
+  - name: community.hashi_vault    # HashiCorp Vault lookups & secret engines
+
+  # Observability (optional but handy)
+  - name: community.grafana        # Dashboards, datasources, folders, alerts
+
+  # Cloud providers (uncomment what you use)
+  # - name: amazon.aws             # AWS modules & dynamic inventory
+  # - name: azure.azcollection     # AzureRM modules & plugins
+  # - name: google.cloud           # GCP modules & inventory
+
+  # Windows (uncomment if you manage Windows hosts)
+  # - name: ansible.windows        # WinRM, packages, services, DSC, etc.
+  
+  # Proxmox (uncomment if you use Proxmox VE)
+  - name: community.proxmox       # Proxmox VE API modules  

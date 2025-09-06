@@ -19,7 +19,6 @@ fi
 # ---------------------------------------
 # Catppuccin for Bash
 # ---------------------------------------
-# ----- Config -----
 FLAVOUR="${CATPPUCCIN_FLAVOUR:-LATTE}"  # LATTE | FRAPPE | MACCHIATO | MOCHA
 
 # ----- Portable helpers -----
@@ -156,23 +155,8 @@ get_rgb() {
   esac
 }
 
-# ----- Demo (safe to remove in production) -----
-# if [[ "${1:-}" != "no-demo" ]]; then
-#   printf "%bCatppuccin %s%b\n" "$(fg TEXT)" "$FLAVOUR" "$RESET"
-#   info  "Starting up"
-#   warn  "Heads-up"
-#   error "Something went sideways"
-#   ok    "Job done"
-
-#   # print a quick swatch of accents on BASE
-#   for name in ROSEWATER FLAMINGO PINK MAUVE RED MAROON PEACH YELLOW GREEN TEAL SKY SAPPHIRE BLUE LAVENDER; do
-#     printf "%b %s %b" "$(bg BASE)$(fg "$name")" " ${name} " "$RESET"
-#   done
-#   printf "\n"
-# fi
-
 # ---------------------------------------
-# Print banner
+# Banner (portable printf, no echo -e)
 # ---------------------------------------
 print_banner() {
   printf '\n'
@@ -194,21 +178,8 @@ print_banner() {
 
 print_banner
 
-
-# detect_os() {
-#     if [[ -f /etc/os-release ]]; then
-#         . /etc/os-release
-#         OS=$NAME
-#         VER=$VERSION_ID
-#     else
-#         OS=$(uname -s)
-#         VER=$(uname -r)
-#     fi
-#     echo "Detected OS: $OS $VER"
-# }
-
 # ---------------------------------------
-# Detect OS, version, and tag
+# Detect OS, version, and token
 # ---------------------------------------
 detect_os() {
   local uname_s name version ps exe out token
@@ -231,7 +202,6 @@ detect_os() {
           dotfiles_os_version="Linux $(uname -r)"
           dotfiles_os_tag="linux-$(uname -r)"
         fi
-        # Detect WSL
         if grep -qi 'microsoft' /proc/sys/kernel/osrelease 2>/dev/null; then
           dotfiles_os="Windows (WSL)"
           dotfiles_os_version="Windows (WSL) $(uname -r)"
@@ -257,7 +227,6 @@ detect_os() {
         ;;
       CYGWIN*|MINGW*|MSYS*)
         version="$(uname -r)"
-        # dotfiles_os="Windows"
         dotfiles_os="Windows (POSIX layer)"
         dotfiles_os_version="Windows (POSIX layer) $version"
         dotfiles_os_tag="windows-posix-$version"
@@ -270,7 +239,6 @@ detect_os() {
         token="unknown"
         ;;
     esac
-
   else
     # No uname — likely native Windows
     ps=""
@@ -300,11 +268,7 @@ detect_os() {
   fi
 
   export dotfiles_os dotfiles_os_version dotfiles_os_tag
-
-  # Human-friendly log → stderr
   printf 'Detected OS: %s\n' "$dotfiles_os_version" >&2
-
-  # Machine-friendly token → stdout
   echo "$token"
 }
 
@@ -321,8 +285,6 @@ ensure_dir() { [ -d "$1" ] || ${SUDO} mkdir -p "$1"; }
 
 # Append a line once to a file (idempotent)
 _append_once() {
-  # Usage: _append_once <file> "<line to append>"
-  # Ensures the exact line exists once in the file.
   local _file="$1"; shift
   local _line="$*"
   mkdir -p "$(dirname "$_file")"
@@ -337,14 +299,10 @@ _append_once() {
 
 # pipx completions (current user)
 enable_pipx_completion() {
-  # Configure shell completions for pipx using argcomplete.
-  # Safe to run multiple times.
   if ! command -v pipx >/dev/null 2>&1; then
     warn "pipx not found; skipping completion setup."
     return 0
   fi
-
-  # Try to ensure register-python-argcomplete is available for the user.
   if ! command -v register-python-argcomplete >/dev/null 2>&1; then
     warn "register-python-argcomplete not found; attempting user install of argcomplete…"
     python3 -m pip install --user argcomplete >/dev/null 2>&1 || true
@@ -365,7 +323,6 @@ enable_pipx_completion() {
       _append_once "$rcfile" 'eval "$(register-python-argcomplete pipx)"'
       ;;
     fish)
-      # Fish uses a one-time file, not rc eval.
       local compdir="$HOME/.config/fish/completions"
       local compfile="$compdir/pipx.fish"
       mkdir -p "$compdir"
@@ -381,18 +338,11 @@ enable_pipx_completion() {
       fi
       ;;
     tcsh|csh)
-      # Prefer .tcshrc if it exists, otherwise fall back to .cshrc
-      if [ -f "$HOME/.tcshrc" ]; then
-        rcfile="$HOME/.tcshrc"
-      else
-        rcfile="$HOME/.cshrc"
-      fi
+      if [ -f "$HOME/.tcshrc" ]; then rcfile="$HOME/.tcshrc"; else rcfile="$HOME/.cshrc"; fi
       _append_once "$rcfile" 'eval `register-python-argcomplete --shell tcsh pipx`'
       ;;
-
     *)
-      warn "Unsupported or unknown shell '$SHELL' — skipping pipx completion setup."
-      return 0
+      warn "Unsupported or unknown shell '"$SHELL"' — skipping pipx completion setup."
       ;;
   esac
 
@@ -460,73 +410,17 @@ sync_dotfiles() {
 }
 
 # ---------------------------------------
-# Ansible Galaxy: install collections
-# ---------------------------------------
-install_galaxy_collections() {
-  # Ensure ansible-galaxy is reachable (pipx shim or system)
-  if ! has_cmd ansible-galaxy; then
-    # Try the common pipx shim path before giving up
-    PATH="$HOME/.local/bin:$PATH"; export PATH
-    if ! has_cmd ansible-galaxy; then
-      warn "ansible-galaxy not found; skipping Galaxy install."
-      return 0
-    fi
-  fi
-
-  # Resolve requirements file
-  local req="${GALAXY_REQUIREMENTS:-$DOTFILES_DIR/requirements/ansible.yml}"
-  if [ ! -f "$req" ]; then
-    # Fallbacks: script directory, then CWD
-    local script_dir
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -f "$script_dir/requirements/ansible.yml" ]; then
-      req="$script_dir/requirements/ansible.yml"
-    elif [ -f "$PWD/requirements/ansible.yml" ]; then
-      req="$PWD/requirements/ansible.yml"
-    else
-      warn "Galaxy requirements file not found (tried $DOTFILES_DIR, script dir, CWD)."
-      return 0
-    fi
-  fi
-
-  info "Installing Ansible Galaxy collections from: $req"
-  # Use a user-writable path to avoid sudo; idempotent on re-run
-  local target="$HOME/.ansible/collections"
-  mkdir -p "$target"
-
-  if ansible-galaxy collection install -r "$req" \
-      --collections-path "$target" --timeout 600; then
-    ok "Galaxy collections installed to $target"
-  else
-    warn "Install failed; retrying with --force-with-deps…"
-    if ansible-galaxy collection install -r "$req" \
-        --collections-path "$target" --force-with-deps --timeout 600; then
-      ok "Galaxy collections installed (forced) to $target"
-    else
-      error "Galaxy collection install failed. Check network/proxy and the file at: $req"
-    fi
-  fi
-}
-
-# ---------------------------------------
 # Per-OS installers
 # ---------------------------------------
-# NOTE: Avoid upgrading system pip. Use OS packages + pipx for Ansible.
-
 setup_macos() {
   info "macOS: updating system & installing tools"
-
-  # Command Line Tools (safe if already installed)
   if ! xcode-select -p >/dev/null 2>&1; then
     info "Installing Xcode Command Line Tools…"
     xcode-select --install || true
   fi
-
-  # Homebrew
   if ! has_cmd brew; then
     warn "Homebrew not found; installing…"
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    # ensure brew in PATH for current session
     if [ -d /opt/homebrew/bin ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
     if [ -d /usr/local/bin ]; then eval "$(/usr/local/bin/brew shellenv)"; fi
   fi
@@ -534,8 +428,7 @@ setup_macos() {
   brew update
   brew upgrade || true
   brew install git gh python pipx
-  # Ensure pipx path and use it for Ansible
-  # ${SUDO} python3 -m pip install --upgrade pip
+
   pipx ensurepath
   PATH="$HOME/.local/bin:$PATH"; export PATH
   pipx install --include-deps ansible || pipx upgrade ansible || true
@@ -546,14 +439,11 @@ setup_debian_like() {
   info "Debian/Ubuntu: apt update & base packages"
   ${SUDO} apt-get update -y
   ${SUDO} apt-get upgrade -y
-
-  # Base dev deps for Python/Ansible builds
   ${SUDO} apt-get install -y \
     git curl ca-certificates gnupg lsb-release software-properties-common \
     build-essential python3 python3-pip python3-venv pipx \
     libffi-dev libssl-dev
 
-  # GitHub CLI (try from repo if available)
   if ! has_cmd gh; then
     ${SUDO} apt-get install -y gh || true
     if ! has_cmd gh; then
@@ -568,8 +458,6 @@ setup_debian_like() {
     fi
   fi
 
-  # Latest pip/pipx and Ansible via pipx
-  # ${SUDO} python3 -m pip install --upgrade pip
   pipx ensurepath
   PATH="$HOME/.local/bin:$PATH"; export PATH
   pipx install --include-deps ansible || pipx upgrade ansible || true
@@ -582,8 +470,6 @@ setup_fedora_like() {
   ${SUDO} dnf -y install git gh python3 python3-pip python3-virtualenv pipx \
     gcc gcc-c++ make openssl-devel libffi-devel
 
-  # Ensure pip/pipx and Ansible
-  ${SUDO} python3 -m pip install --upgrade pip
   pipx ensurepath
   PATH="$HOME/.local/bin:$PATH"; export PATH
   pipx install --include-deps ansible || pipx upgrade ansible || true
@@ -595,8 +481,6 @@ setup_arch() {
   ${SUDO} pacman -Syu --noconfirm
   ${SUDO} pacman -S --noconfirm git github-cli python python-pip python-virtualenv pipx base-devel libffi openssl
 
-  # Ensure pip/pipx and Ansible
-  python -m pip install --upgrade --user pip || true
   pipx ensurepath
   PATH="$HOME/.local/bin:$PATH"; export PATH
   pipx install --include-deps ansible || pipx upgrade ansible || true
@@ -611,8 +495,6 @@ setup_opensuse() {
     git gh python3 python3-pip python3-virtualenv python3-pipx \
     gcc-c++ make libopenssl-devel libffi-devel
 
-  # Ensure pip/pipx and Ansible
-  ${SUDO} python3 -m pip install --upgrade pip
   pipx ensurepath
   PATH="$HOME/.local/bin:$PATH"; export PATH
   pipx install --include-deps ansible || pipx upgrade ansible || true
@@ -626,10 +508,6 @@ setup_freebsd() {
   ${SUDO} pkg install -y git gh python3 py39-virtualenv py39-pip pipx || \
   ${SUDO} pkg install -y git gh python311 py311-virtualenv py311-pip pipx || true
 
-  # Ensure pip/pipx and Ansible
-  if has_cmd python3; then
-    ${SUDO} python3 -m pip install --upgrade pip || true
-  fi
   pipx ensurepath || true
   PATH="$HOME/.local/bin:$PATH"; export PATH
   pipx install --include-deps ansible || pipx upgrade ansible || true
@@ -647,8 +525,6 @@ setup_windows_posix() {
   if has_cmd pacman; then
     ${SUDO} pacman -Syu --noconfirm
     ${SUDO} pacman -S --noconfirm git github-cli python python-pip base-devel
-    python -m pip install --upgrade --user pip || true
-    # pipx may not be present; bootstrap:
     python -m pip install --user pipx || true
     pipx ensurepath || true
     PATH="$HOME/.local/bin:$PATH"; export PATH
@@ -657,7 +533,6 @@ setup_windows_posix() {
   else
     error "Unsupported POSIX-on-Windows environment. Install git/gh/python/pipx manually, then: pipx install ansible"
   fi
-  enable_pipx_completion
 }
 
 # ---------------------------------------
@@ -668,7 +543,6 @@ bootstrap_host() {
   case "$os" in
     macos)          setup_macos ;;
     linux)
-      # Try to distinguish common families
       if [ -r /etc/os-release ]; then
         # shellcheck disable=SC1091
         . /etc/os-release
@@ -719,12 +593,6 @@ bootstrap_host() {
 
   # Finally, clone/update your dotfiles
   sync_dotfiles
-
-  # Install Galaxy collections defined in requirements/ansible.yml
-  install_galaxy_collections
-
-
-  
 }
 
 # If this file is sourced by another script, the caller can invoke bootstrap_host explicitly.
@@ -732,4 +600,3 @@ bootstrap_host() {
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   bootstrap_host
 fi
-
