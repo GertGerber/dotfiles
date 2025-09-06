@@ -503,7 +503,7 @@ install_galaxy_collections() {
   #   GALAXY_FORCE=1       -> overwrite existing + deps
   local extra_flags=()
   [ "${GALAXY_UPGRADE:-1}" = "1" ] && extra_flags+=(--upgrade)
-  [ "${GALAXY_FORCE:-1}"   = "1" ] && extra_flags+=(--force-with-deps)
+  [ "${GALAXY_FORCE:-0}"   = "1" ] && extra_flags+=(--force-with-deps)
 
   if ansible-galaxy collection install -r "$req" \
        --collections-path "$target" "${extra_flags[@]}"; then
