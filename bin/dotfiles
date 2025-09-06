@@ -496,12 +496,14 @@ install_galaxy_collections() {
   local target="$HOME/.ansible/collections"
   mkdir -p "$target"
 
-  # Optional behaviour toggles:
-  #   GALAXY_UPGRADE=1     -> prefer newer versions where available
+  # Optional behaviour toggles: 
+  #   GALAXY_UPGRADE=0     -> do not upgrade existing
+  #   GALAXY_FORCE=0       -> do not overwrite existing
+  #   GALAXY_UPGRADE=1     -> prefer newer versions where available 
   #   GALAXY_FORCE=1       -> overwrite existing + deps
   local extra_flags=()
-  [ "${GALAXY_UPGRADE:-0}" = "1" ] && extra_flags+=(--upgrade)
-  [ "${GALAXY_FORCE:-0}"   = "1" ] && extra_flags+=(--force-with-deps)
+  [ "${GALAXY_UPGRADE:-1}" = "1" ] && extra_flags+=(--upgrade)
+  [ "${GALAXY_FORCE:-1}"   = "1" ] && extra_flags+=(--force-with-deps)
 
   if ansible-galaxy collection install -r "$req" \
        --collections-path "$target" "${extra_flags[@]}"; then
@@ -517,7 +519,7 @@ install_galaxy_collections() {
   fi
 
   # Optional: quick visibility on what’s available
-  info "Collections now visible in Ansible paths; default includes $HOME/.ansible/collections."  # ¹
+  info "Collections now visible in Ansible paths; default includes $HOME/.ansible/collections."  
 }
 
 
