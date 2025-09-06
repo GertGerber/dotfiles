@@ -465,7 +465,6 @@ sync_dotfiles() {
 install_galaxy_collections() {
   # Ensure ansible-galaxy is reachable (pipx shim or system)
   if ! has_cmd ansible-galaxy; then
-    # Try the common pipx shim path before giving up
     PATH="$HOME/.local/bin:$PATH"; export PATH
     if ! has_cmd ansible-galaxy; then
       warn "ansible-galaxy not found; skipping Galaxy install."
@@ -473,40 +472,54 @@ install_galaxy_collections() {
     fi
   fi
 
-  # Resolve requirements file
-  local req="${GALAXY_REQUIREMENTS:-$DOTFILES_DIR/requirements/ansible.yml}"
+  # Resolve requirements file safely under 'set -u'
+  local default_req
+  default_req="${DOTFILES_DIR:-$HOME/.dotfiles}/requirements/ansible.yml"
+  local req="${GALAXY_REQUIREMENTS:-$default_req}"
+
   if [ ! -f "$req" ]; then
     # Fallbacks: script directory, then CWD
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -f "$script_dir/requirements/ansible.yml" ]; then
-      req="$script_dir/requirements/ansible.yml"
-    elif [ -f "$PWD/requirements/ansible.yml" ]; then
-      req="$PWD/requirements/ansible.yml"
+    if      [ -f "$script_dir/requirements/ansible.yml" ]; then req="$script_dir/requirements/ansible.yml"
+    elif    [ -f "$PWD/requirements/ansible.yml" ]; then       req="$PWD/requirements/ansible.yml"
     else
-      warn "Galaxy requirements file not found (tried $DOTFILES_DIR, script dir, CWD)."
+      warn "Galaxy requirements file not found (tried $default_req, script dir, CWD)."
       return 0
     fi
   fi
 
   info "Installing Ansible Galaxy collections from: $req"
-  # Use a user-writable path to avoid sudo; idempotent on re-run
+
+  # Use a user-writable path (matches Ansible's default search path) ¹
+  # Final layout will be: ~/.ansible/collections/ansible_collections/<ns>/<name>
   local target="$HOME/.ansible/collections"
   mkdir -p "$target"
 
+  # Optional behaviour toggles:
+  #   GALAXY_UPGRADE=1     -> prefer newer versions where available
+  #   GALAXY_FORCE=1       -> overwrite existing + deps
+  local extra_flags=()
+  [ "${GALAXY_UPGRADE:-0}" = "1" ] && extra_flags+=(--upgrade)
+  [ "${GALAXY_FORCE:-0}"   = "1" ] && extra_flags+=(--force-with-deps)
+
   if ansible-galaxy collection install -r "$req" \
-      --collections-path "$target" --timeout 600; then
+       --collections-path "$target" "${extra_flags[@]}"; then
     ok "Galaxy collections installed to $target"
   else
     warn "Install failed; retrying with --force-with-deps…"
     if ansible-galaxy collection install -r "$req" \
-        --collections-path "$target" --force-with-deps --timeout 600; then
+         --collections-path "$target" --force-with-deps "${extra_flags[@]/--force-with-deps}"; then
       ok "Galaxy collections installed (forced) to $target"
     else
       error "Galaxy collection install failed. Check network/proxy and the file at: $req"
     fi
   fi
+
+  # Optional: quick visibility on what’s available
+  info "Collections now visible in Ansible paths; default includes $HOME/.ansible/collections."  # ¹
 }
+
 
 # ---------------------------------------
 # Per-OS installers
