@@ -1,0 +1,42 @@
+---
+# Install ShellCheck across supported OS families (idempotent).
+
+- name: macOS | Install ShellCheck (brew)
+  community.general.homebrew:
+    name: shellcheck
+    state: present
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+  tags: [lint, shellcheck]
+
+- name: Debian/Ubuntu | Install ShellCheck (apt)
+  ansible.builtin.apt:
+    name: shellcheck
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    force_apt_get: true
+  when: ansible_facts.os_family == 'Debian'
+  tags: [lint, shellcheck]
+
+- name: Fedora/RHEL | Install ShellCheck (dnf)
+  ansible.builtin.dnf:
+    name: ShellCheck
+    state: present
+  when: ansible_facts.os_family == 'RedHat'
+  tags: [lint, shellcheck]
+
+- name: Arch | Install ShellCheck (pacman)
+  community.general.pacman:
+    name: shellcheck
+    state: present
+    update_cache: true
+  when: ansible_facts.os_family == 'Archlinux'
+  tags: [lint, shellcheck]
+
+- name: openSUSE | Install ShellCheck (zypper)
+  community.general.zypper:
+    name: ShellCheck
+    state: present
+  when: ansible_facts.os_family == 'Suse'
+  tags: [lint, shellcheck]

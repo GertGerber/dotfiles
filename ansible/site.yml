@@ -10,6 +10,11 @@
         name: common
       tags: [common]
 
+    - name: Include shellcheck
+      ansible.builtin.import_role:
+        name: shellcheck
+      tags: [lint, shellcheck]
+
     - name: Include fonts
       ansible.builtin.import_role:
         name: fonts
