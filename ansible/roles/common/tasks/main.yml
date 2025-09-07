@@ -8,21 +8,62 @@
   when: ansible_facts.os_family == 'Darwin'
   become: false
 
-- name: Debian/Ubuntu | apt update
-  apt:
+# ---------------- Debian / Ubuntu ----------------
+
+- name: Debian/Ubuntu | Force APT to use IPv4 (avoid broken IPv6 routes)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99force-ipv4
+    content: 'Acquire::ForceIPv4 "true";'
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - ansible_facts.os_family == 'Debian'
+    - (apt_force_ipv4 | default(true)) | bool
+
+- name: Debian/Ubuntu | Configure APT proxy (optional)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/90proxy
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {% if apt_http_proxy | default('') %}
+      Acquire::http::Proxy "{{ apt_http_proxy }}";
+      {% endif %}
+      {% if apt_https_proxy | default('') %}
+      Acquire::https::Proxy "{{ apt_https_proxy }}";
+      {% endif %}
+  when:
+    - ansible_facts.os_family == 'Debian'
+    - (apt_http_proxy | default('') | length) > 0 or (apt_https_proxy | default('') | length) > 0
+
+- name: Debian/Ubuntu | apt update (retries + apt-get path)
+  ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
+    force_apt_get: true
+  register: _apt_update
+  retries: 5
+  delay: 10
+  until: _apt_update is succeeded
   when: ansible_facts.os_family == 'Debian'
 
+# ---------------- Fedora / RHEL ----------------
+
 - name: Fedora/RHEL | dnf makecache
-  dnf:
+  ansible.builtin.dnf:
     update_cache: true
   when: ansible_facts.os_family == 'RedHat'
+
+# ---------------- Arch ----------------
 
 - name: Arch | pacman sync
   community.general.pacman:
     update_cache: true
   when: ansible_facts.os_family == 'Archlinux'
+
+# ---------------- openSUSE ----------------
 
 - name: openSUSE | zypper refresh
   community.general.zypper:

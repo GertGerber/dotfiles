@@ -55,3 +55,8 @@ vaultwarden_data_dir: "/var/lib/vaultwarden"
 vaultwarden_port: 8087
 vaultwarden_signups_allowed: false
 vaultwarden_domain: "http://localhost:8087"
+
+# APT behaviour (Debian/Ubuntu)
+apt_force_ipv4: true              # force APT to use IPv4 to avoid broken v6 paths
+apt_http_proxy: ""                # optional, e.g. http://proxy.local:3128
+apt_https_proxy: ""               # optional, e.g. http://proxy.local:3128
