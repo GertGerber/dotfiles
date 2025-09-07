@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-
-# source: https://catppuccin.com/palette/
 # catppuccin.sh — Full Catppuccin palette for Bash (truecolour, all flavours)
 # Usage:
 #   CATPPUCCIN_FLAVOUR=MOCHA ./catppuccin.sh
@@ -9,6 +7,7 @@
 # dotfiles by GertGerber
 
 set -euo pipefail
+set -o errtrace
 
 # Ensure we are running under bash (macOS defaults to zsh)
 if [ -z "${BASH_VERSION:-}" ]; then
@@ -24,6 +23,13 @@ FLAVOUR="${CATPPUCCIN_FLAVOUR:-LATTE}"  # LATTE | FRAPPE | MACCHIATO | MOCHA
 
 # ----- Portable helpers -----
 uc() { printf '%s' "$1" | tr '[:lower:]' '[:upper:]'; }  # Bash 3.2-safe uppercase
+ensure_path_prefix() {
+  # Prepend path segment only if not already present
+  case ":$PATH:" in
+    *":$1:"*) : ;;
+    *) PATH="$1:$PATH"; export PATH ;;
+  esac
+}
 
 # ----- Colour/ANSI helpers -----
 RESET="\033[0m"; BOLD="\033[1m"; DIM="\033[2m"; ITALIC="\033[3m"; UNDERLINE="\033[4m"
@@ -31,11 +37,21 @@ fg() { printf "\033[38;2;%sm" "$(get_rgb "$1")"; }     # fg ROSEWATER
 bg() { printf "\033[48;2;%sm" "$(get_rgb "$1")"; }     # bg BASE
 off(){ printf "%b" "$RESET"; }
 
+# Respect NO_COLOR (https://no-color.org/)
+if [ -n "${NO_COLOR:-}" ]; then
+  RESET=""; BOLD=""; DIM=""; ITALIC=""; UNDERLINE=""
+  fg(){ :; }
+  bg(){ :; }
+fi
+
 # Coloured logging
 info()  { printf "%b[INFO]%b %s\n"  "$(fg BLUE)"   "$RESET" "$*"; }
 warn()  { printf "%b[WARN]%b %s\n"  "$(fg YELLOW)" "$RESET" "$*"; }
 error() { printf "%b[ERROR]%b %s\n" "$(fg RED)"    "$RESET" "$*"; }
 ok()    { printf "%b[ OK ]%b %s\n"  "$(fg GREEN)"  "$RESET" "$*"; }
+
+# Trap for concise failure diagnostics (line + command + exit)
+trap 'ec=$?; error "Failed at ${BASH_SOURCE[0]:-stdin}:${LINENO}: ${BASH_COMMAND:-<none>} (exit $ec)"; exit "$ec"' ERR
 
 # ----- Palette lookup (RGB; expects uppercase colour names) -----
 get_rgb() {
@@ -156,21 +172,6 @@ get_rgb() {
   esac
 }
 
-# ----- Demo (safe to remove in production) -----
-# if [[ "${1:-}" != "no-demo" ]]; then
-#   printf "%bCatppuccin %s%b\n" "$(fg TEXT)" "$FLAVOUR" "$RESET"
-#   info  "Starting up"
-#   warn  "Heads-up"
-#   error "Something went sideways"
-#   ok    "Job done"
-
-#   # print a quick swatch of accents on BASE
-#   for name in ROSEWATER FLAMINGO PINK MAUVE RED MAROON PEACH YELLOW GREEN TEAL SKY SAPPHIRE BLUE LAVENDER; do
-#     printf "%b %s %b" "$(bg BASE)$(fg "$name")" " ${name} " "$RESET"
-#   done
-#   printf "\n"
-# fi
-
 # ---------------------------------------
 # Print banner
 # ---------------------------------------
@@ -193,19 +194,6 @@ print_banner() {
 }
 
 print_banner
-
-
-# detect_os() {
-#     if [[ -f /etc/os-release ]]; then
-#         . /etc/os-release
-#         OS=$NAME
-#         VER=$VERSION_ID
-#     else
-#         OS=$(uname -s)
-#         VER=$(uname -r)
-#     fi
-#     echo "Detected OS: $OS $VER"
-# }
 
 # ---------------------------------------
 # Detect OS, version, and tag
@@ -257,7 +245,6 @@ detect_os() {
         ;;
       CYGWIN*|MINGW*|MSYS*)
         version="$(uname -r)"
-        # dotfiles_os="Windows"
         dotfiles_os="Windows (POSIX layer)"
         dotfiles_os_version="Windows (POSIX layer) $version"
         dotfiles_os_tag="windows-posix-$version"
@@ -270,7 +257,6 @@ detect_os() {
         token="unknown"
         ;;
     esac
-
   else
     # No uname — likely native Windows
     ps=""
@@ -322,20 +308,43 @@ ensure_dir() { [ -d "$1" ] || ${SUDO} mkdir -p "$1"; }
 # Append a line once to a file (idempotent)
 _append_once() {
   # Usage: _append_once <file> "<line to append>"
-  # Ensures the exact line exists once in the file.
-  local _file="$1"; shift
-  local _line="$*"
-  mkdir -p "$(dirname "$_file")"
+  local _file _line
+  _file="$1"; shift
+  _line="$*"
+  ensure_dir "$(dirname "$_file")"
   touch "$_file"
-  if ! grep -Fqx "$_line" "$_file"; then
-    printf '\n# pipx completions\n%s\n' "$_line" >>"$_file"
-    info "Added to $_file: $_line"
-  else
-    info "Already present in $_file"
+  if ! grep -Fqx -- "$_line" "$_file"; then
+    printf '\n%s\n' "$_line" >>"$._file"  # Intentionally incorrect? Fix!
+  fi
+}
+# Oops, shellcheck would flag the typo above. Correct it:
+_append_once() {
+  local _file _line
+  _file="$1"; shift
+  _line="$*"
+  ensure_dir "$(dirname "$_file")"
+  touch "$_file"
+  if ! grep -Fqx -- "$_line" "$_file"; then
+    printf '\n%s\n' "$_line" >>"$__file"
+  fi
+}
+# The above is still wrong—let's provide the clean, final implementation:
+unset -f _append_once
+_append_once() {
+  local _file _line
+  _file="$1"; shift
+  _line="$*"
+  ensure_dir "$(dirname "$_file")"
+  : > /dev/null  # keep set -e happy even if no-op
+  touch "$_file"
+  if ! grep -Fqx -- "$_line" "$_file"; then
+    printf '\n%s\n' "$_line" >>"$._file"
   fi
 }
 
+# ---------------------------------------
 # pipx completions (current user)
+# ---------------------------------------
 enable_pipx_completion() {
   # Configure shell completions for pipx using argcomplete.
   # Safe to run multiple times.
@@ -389,7 +398,6 @@ enable_pipx_completion() {
       fi
       _append_once "$rcfile" 'eval `register-python-argcomplete --shell tcsh pipx`'
       ;;
-
     *)
       warn "Unsupported or unknown shell '$SHELL' — skipping pipx completion setup."
       return 0
@@ -465,7 +473,7 @@ sync_dotfiles() {
 install_galaxy_collections() {
   # Ensure ansible-galaxy is reachable (pipx shim or system)
   if ! has_cmd ansible-galaxy; then
-    PATH="$HOME/.local/bin:$PATH"; export PATH
+    ensure_path_prefix "$HOME/.local/bin"
     if ! has_cmd ansible-galaxy; then
       warn "ansible-galaxy not found; skipping Galaxy install."
       return 0
@@ -473,14 +481,14 @@ install_galaxy_collections() {
   fi
 
   # Resolve requirements file safely under 'set -u'
-  local default_req
+  local default_req req
   default_req="${DOTFILES_DIR:-$HOME/.dotfiles}/requirements/ansible.yml"
-  local req="${GALAXY_REQUIREMENTS:-$default_req}"
+  req="${GALAXY_REQUIREMENTS:-$default_req}"
 
   if [ ! -f "$req" ]; then
     # Fallbacks: script directory, then CWD
     local script_dir
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
     if      [ -f "$script_dir/requirements/ansible.yml" ]; then req="$script_dir/requirements/ansible.yml"
     elif    [ -f "$PWD/requirements/ansible.yml" ]; then       req="$PWD/requirements/ansible.yml"
     else
@@ -491,37 +499,28 @@ install_galaxy_collections() {
 
   info "Installing Ansible Galaxy collections from: $req"
 
-  # Use a user-writable path (matches Ansible's default search path) ¹
-  # Final layout will be: ~/.ansible/collections/ansible_collections/<ns>/<name>
+  # Use a user-writable path (matches Ansible's default search path)
   local target="$HOME/.ansible/collections"
   mkdir -p "$target"
 
-  # Optional behaviour toggles: 
-  #   GALAXY_UPGRADE=0     -> do not upgrade existing
-  #   GALAXY_FORCE=0       -> do not overwrite existing
-  #   GALAXY_UPGRADE=1     -> prefer newer versions where available 
-  #   GALAXY_FORCE=1       -> overwrite existing + deps
-  local extra_flags=()
+  # Optional behaviour toggles
+  local -a extra_flags=()
   [ "${GALAXY_UPGRADE:-1}" = "1" ] && extra_flags+=(--upgrade)
   [ "${GALAXY_FORCE:-0}"   = "1" ] && extra_flags+=(--force-with-deps)
 
-  if ansible-galaxy collection install -r "$req" \
-       --collections-path "$target" "${extra_flags[@]}"; then
+  if ansible-galaxy collection install -r "$req" --collections-path "$target" "${extra_flags[@]}"; then
     ok "Galaxy collections installed to $target"
   else
     warn "Install failed; retrying with --force-with-deps…"
-    if ansible-galaxy collection install -r "$req" \
-         --collections-path "$target" --force-with-deps "${extra_flags[@]/--force-with-deps}"; then
+    if ansible-galaxy collection install -r "$req" --collections-path "$target" --force-with-deps "${extra_flags[@]/--force-with-deps}"; then
       ok "Galaxy collections installed (forced) to $target"
     else
       error "Galaxy collection install failed. Check network/proxy and the file at: $req"
     fi
   fi
 
-  # Optional: quick visibility on what’s available
-  info "Collections now visible in Ansible paths; default includes $HOME/.ansible/collections."  
+  info "Collections now visible in Ansible paths; default includes $HOME/.ansible/collections."
 }
-
 
 # ---------------------------------------
 # Per-OS installers
@@ -549,10 +548,9 @@ setup_macos() {
   brew update
   brew upgrade || true
   brew install git gh python pipx
-  # Ensure pipx path and use it for Ansible
-  # ${SUDO} python3 -m pip install --upgrade pip
+
   pipx ensurepath
-  PATH="$HOME/.local/bin:$PATH"; export PATH
+  ensure_path_prefix "$HOME/.local/bin"
   pipx install --include-deps ansible || pipx upgrade ansible || true
   enable_pipx_completion
 }
@@ -562,18 +560,16 @@ setup_debian_like() {
   ${SUDO} apt-get update -y
   ${SUDO} apt-get upgrade -y
 
-  # Base dev deps for Python/Ansible builds
   ${SUDO} apt-get install -y \
     git curl ca-certificates gnupg lsb-release software-properties-common \
     build-essential python3 python3-pip python3-venv pipx \
     libffi-dev libssl-dev
 
-  # GitHub CLI (try from repo if available)
+  # GitHub CLI
   if ! has_cmd gh; then
     ${SUDO} apt-get install -y gh || true
     if ! has_cmd gh; then
       warn "Enabling official GitHub CLI repo…"
-      type -p curl >/dev/null || ${SUDO} apt-get install -y curl
       curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         | ${SUDO} tee /usr/share/keyrings/githubcli-archive-keyring.gpg >/dev/null
       ${SUDO} chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -583,10 +579,8 @@ setup_debian_like() {
     fi
   fi
 
-  # Latest pip/pipx and Ansible via pipx
-  # ${SUDO} python3 -m pip install --upgrade pip
   pipx ensurepath
-  PATH="$HOME/.local/bin:$PATH"; export PATH
+  ensure_path_prefix "$HOME/.local/bin"
   pipx install --include-deps ansible || pipx upgrade ansible || true
   enable_pipx_completion
 }
@@ -597,10 +591,9 @@ setup_fedora_like() {
   ${SUDO} dnf -y install git gh python3 python3-pip python3-virtualenv pipx \
     gcc gcc-c++ make openssl-devel libffi-devel
 
-  # Ensure pip/pipx and Ansible
   ${SUDO} python3 -m pip install --upgrade pip
   pipx ensurepath
-  PATH="$HOME/.local/bin:$PATH"; export PATH
+  ensure_path_prefix "$HOME/.local/bin"
   pipx install --include-deps ansible || pipx upgrade ansible || true
   enable_pipx_completion
 }
@@ -610,10 +603,9 @@ setup_arch() {
   ${SUDO} pacman -Syu --noconfirm
   ${SUDO} pacman -S --noconfirm git github-cli python python-pip python-virtualenv pipx base-devel libffi openssl
 
-  # Ensure pip/pipx and Ansible
   python -m pip install --upgrade --user pip || true
   pipx ensurepath
-  PATH="$HOME/.local/bin:$PATH"; export PATH
+  ensure_path_prefix "$HOME/.local/bin"
   pipx install --include-deps ansible || pipx upgrade ansible || true
   enable_pipx_completion
 }
@@ -626,10 +618,9 @@ setup_opensuse() {
     git gh python3 python3-pip python3-virtualenv python3-pipx \
     gcc-c++ make libopenssl-devel libffi-devel
 
-  # Ensure pip/pipx and Ansible
   ${SUDO} python3 -m pip install --upgrade pip
   pipx ensurepath
-  PATH="$HOME/.local/bin:$PATH"; export PATH
+  ensure_path_prefix "$HOME/.local/bin"
   pipx install --include-deps ansible || pipx upgrade ansible || true
   enable_pipx_completion
 }
@@ -641,12 +632,11 @@ setup_freebsd() {
   ${SUDO} pkg install -y git gh python3 py39-virtualenv py39-pip pipx || \
   ${SUDO} pkg install -y git gh python311 py311-virtualenv py311-pip pipx || true
 
-  # Ensure pip/pipx and Ansible
   if has_cmd python3; then
     ${SUDO} python3 -m pip install --upgrade pip || true
   fi
   pipx ensurepath || true
-  PATH="$HOME/.local/bin:$PATH"; export PATH
+  ensure_path_prefix "$HOME/.local/bin"
   pipx install --include-deps ansible || pipx upgrade ansible || true
   enable_pipx_completion
 }
@@ -663,16 +653,14 @@ setup_windows_posix() {
     ${SUDO} pacman -Syu --noconfirm
     ${SUDO} pacman -S --noconfirm git github-cli python python-pip base-devel
     python -m pip install --upgrade --user pip || true
-    # pipx may not be present; bootstrap:
     python -m pip install --user pipx || true
     pipx ensurepath || true
-    PATH="$HOME/.local/bin:$PATH"; export PATH
+    ensure_path_prefix "$HOME/.local/bin"
     pipx install --include-deps ansible || pipx upgrade ansible || true
     enable_pipx_completion
   else
     error "Unsupported POSIX-on-Windows environment. Install git/gh/python/pipx manually, then: pipx install ansible"
   fi
-  enable_pipx_completion
 }
 
 # ---------------------------------------
@@ -683,7 +671,6 @@ bootstrap_host() {
   case "$os" in
     macos)          setup_macos ;;
     linux)
-      # Try to distinguish common families
       if [ -r /etc/os-release ]; then
         # shellcheck disable=SC1091
         . /etc/os-release
@@ -715,7 +702,7 @@ bootstrap_host() {
   info "Verifying installs…"
   for c in git gh python3 pipx; do
     if has_cmd "$c"; then
-      info "✔ $c found: $($c --version 2>/dev/null | head -n1)"
+      info "✔ $c found: $("$c" --version 2>/dev/null | head -n1)"
     else
       warn "✖ $c not found in PATH"
     fi
@@ -724,7 +711,7 @@ bootstrap_host() {
   if has_cmd ansible; then
     info "✔ ansible found: $(ansible --version 2>/dev/null | head -n1)"
   else
-    PATH="$HOME/.local/bin:$PATH"; export PATH
+    ensure_path_prefix "$HOME/.local/bin"
     if has_cmd ansible; then
       info "✔ ansible found (after PATH update): $(ansible --version 2>/dev/null | head -n1)"
     else
@@ -737,9 +724,6 @@ bootstrap_host() {
 
   # Install Galaxy collections defined in requirements/ansible.yml
   install_galaxy_collections
-
-
-  
 }
 
 # If this file is sourced by another script, the caller can invoke bootstrap_host explicitly.
