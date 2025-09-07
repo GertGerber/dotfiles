@@ -1,0 +1,52 @@
+---
+# Bitwarden desktop client — OS-specific approach.
+# macOS uses Homebrew cask.
+# Linux uses Snap (Debian/Ubuntu) or Flatpak for the others for portability.
+
+- name: macOS | Install Bitwarden (cask)
+  community.general.homebrew_cask:
+    name: bitwarden
+    state: present
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+  tags: [vault, vault_bitwarden]
+
+# Debian/Ubuntu — Snap path
+- name: Debian/Ubuntu | Ensure snapd present
+  ansible.builtin.apt:
+    name: snapd
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts.os_family == 'Debian'
+  tags: [vault, vault_bitwarden]
+
+- name: Debian/Ubuntu | Install Bitwarden via Snap
+  community.general.snap:
+    name: bitwarden
+    state: present
+  when: ansible_facts.os_family == 'Debian'
+  tags: [vault, vault_bitwarden]
+
+# Fedora/RHEL/Arch/openSUSE — Flatpak path
+- name: Linux (non-Debian) | Ensure Flatpak present
+  ansible.builtin.package:
+    name: flatpak
+    state: present
+  when: ansible_facts.os_family in ['RedHat','Archlinux','Suse']
+  tags: [vault, vault_bitwarden]
+
+- name: Linux (non-Debian) | Ensure Flathub remote exists
+  community.general.flatpak_remote:
+    name: flathub
+    state: present
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+  when: ansible_facts.os_family in ['RedHat','Archlinux','Suse']
+  tags: [vault, vault_bitwarden]
+
+- name: Linux (non-Debian) | Install Bitwarden via Flatpak
+  community.general.flatpak:
+    name: com.bitwarden.desktop
+    state: present
+  when: ansible_facts.os_family in ['RedHat','Archlinux','Suse']
+  tags: [vault, vault_bitwarden]

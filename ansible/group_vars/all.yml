@@ -1,0 +1,33 @@
+---
+# Choose your vault:
+# - keepassxc (fully independent, local)
+# - bitwarden  (cloud client; optional later)
+# - vaultwarden (self-hosted via Docker)
+vault_choice: keepassxc
+
+# Fonts to install
+fonts:
+  macos_casks:
+    - font-jetbrains-mono-nerd-font
+    - font-fira-code-nerd-font
+  debian_apt:
+    - fonts-jetbrains-mono
+    - fonts-firacode
+  fedora_dnf:
+    - jetbrains-mono-fonts
+    - fira-code-fonts
+  arch_pacman:
+    - ttf-jetbrains-mono
+    - ttf-firacode
+  opensuse_zypper:
+    - jetbrains-mono-fonts
+    - fira-code-fonts
+
+git_user_name: "Gert Gerber"
+git_user_email: "ggerber@outlook.co.nz"
+
+# Vaultwarden container settings (used when vault_choice == 'vaultwarden')
+vaultwarden_data_dir: "/var/lib/vaultwarden"
+vaultwarden_port: 8087
+vaultwarden_signups_allowed: false
+vaultwarden_domain: "http://localhost:8087"

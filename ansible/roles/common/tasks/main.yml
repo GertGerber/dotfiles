@@ -1,0 +1,32 @@
+---
+# Keep package metadata fresh and have the basic tools your playbook expects.
+
+- name: macOS | Ensure Homebrew taps present
+  community.general.homebrew_tap:
+    name: homebrew/cask-fonts
+    state: present
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+
+- name: Debian/Ubuntu | apt update
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Fedora/RHEL | dnf makecache
+  dnf:
+    update_cache: true
+  when: ansible_facts.os_family == 'RedHat'
+
+- name: Arch | pacman sync
+  community.general.pacman:
+    update_cache: true
+  when: ansible_facts.os_family == 'Archlinux'
+
+- name: openSUSE | zypper refresh
+  community.general.zypper:
+    name: zypper
+    update_cache: true
+    state: present
+  when: ansible_facts.os_family == 'Suse'

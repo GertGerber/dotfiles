@@ -1,0 +1,37 @@
+---
+# macOS via Homebrew casks (no sudo)
+- name: macOS | Install fonts (casks)
+  community.general.homebrew_cask:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ fonts.macos_casks | default([]) }}"
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+
+# Debian/Ubuntu
+- name: Debian/Ubuntu | Install fonts
+  apt:
+    name: "{{ fonts.debian_apt | default([]) }}"
+    state: present
+  when: ansible_facts.os_family == 'Debian'
+
+# Fedora/RHEL
+- name: Fedora/RHEL | Install fonts
+  dnf:
+    name: "{{ fonts.fedora_dnf | default([]) }}"
+    state: present
+  when: ansible_facts.os_family == 'RedHat'
+
+# Arch
+- name: Arch | Install fonts
+  community.general.pacman:
+    name: "{{ fonts.arch_pacman | default([]) }}"
+    state: present
+  when: ansible_facts.os_family == 'Archlinux'
+
+# openSUSE
+- name: openSUSE | Install fonts
+  community.general.zypper:
+    name: "{{ fonts.opensuse_zypper | default([]) }}"
+    state: present
+  when: ansible_facts.os_family == 'Suse'

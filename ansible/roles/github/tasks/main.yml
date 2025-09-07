@@ -1,0 +1,33 @@
+---
+# Install GitHub CLI
+
+- name: macOS | gh via brew
+  community.general.homebrew:
+    name: gh
+    state: present
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+
+- name: Debian/Ubuntu | gh via apt (package if available)
+  apt:
+    name: gh
+    state: present
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Fedora/RHEL | gh via dnf
+  dnf:
+    name: gh
+    state: present
+  when: ansible_facts.os_family == 'RedHat'
+
+- name: Arch | gh via pacman
+  community.general.pacman:
+    name: github-cli
+    state: present
+  when: ansible_facts.os_family == 'Archlinux'
+
+- name: openSUSE | gh via zypper
+  community.general.zypper:
+    name: gh
+    state: present
+  when: ansible_facts.os_family == 'Suse'

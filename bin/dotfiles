@@ -523,6 +523,22 @@ install_galaxy_collections() {
 }
 
 # ---------------------------------------
+# Run Ansible playbook
+# ---------------------------------------
+# NOTE: Requires ansible-playbook in PATH (pipx or system)
+run_ansible() {
+  local play_dir="${DOTFILES_DIR:-$HOME/.dotfiles}/ansible"
+  if command -v ansible-playbook >/dev/null 2>&1 && [ -f "$play_dir/site.yml" ]; then
+    info "Running Ansible playbook…"
+    # Become for system packages; prompt for sudo if needed
+    ansible-playbook -i "$play_dir/inventory/hosts.yml" "$play_dir/site.yml" -K
+  else
+    info "Ansible playbook not found; skipping."
+  fi
+}
+
+
+# ---------------------------------------
 # Per-OS installers
 # ---------------------------------------
 # NOTE: Avoid upgrading system pip. Use OS packages + pipx for Ansible.
@@ -731,3 +747,6 @@ bootstrap_host() {
 if [[ "${BASH_SOURCE[0]:-$0}" == "$0" ]]; then
   bootstrap_host
 fi
+
+# Call this at the very end of bootstrap_host()
+run_ansible

@@ -1,0 +1,41 @@
+---
+# Install Git and set global identity.
+
+- name: Install Git (Linux)
+  package:
+    name: git
+    state: present
+  when: ansible_facts.os_family != 'Darwin'
+
+- name: Install Git (macOS)
+  community.general.homebrew:
+    name: git
+    state: present
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+
+- name: Configure git user.name
+  community.general.git_config:
+    name: user.name
+    scope: global
+    value: "{{ git_user_name }}"
+  become: false
+
+- name: Configure git user.email
+  community.general.git_config:
+    name: user.email
+    scope: global
+    value: "{{ git_user_email }}"
+  become: false
+
+- name: Configure sensible Git defaults
+  community.general.git_config:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    scope: global
+  loop:
+    - { name: core.autocrlf, value: input }
+    - { name: init.defaultBranch, value: main }
+    - { name: pull.rebase, value: false }
+    - { name: fetch.prune, value: true }
+  become: false

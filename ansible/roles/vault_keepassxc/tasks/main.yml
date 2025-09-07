@@ -1,0 +1,42 @@
+---
+# KeePassXC — fully independent local vault client
+# Idempotent package installs, OS-specific.
+
+- name: macOS | Install KeePassXC (cask)
+  community.general.homebrew_cask:
+    name: keepassxc
+    state: present
+  when: ansible_facts.os_family == 'Darwin'
+  become: false
+  tags: [vault, vault_keepassxc]
+
+- name: Debian/Ubuntu | Install KeePassXC
+  ansible.builtin.apt:
+    name: keepassxc
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts.os_family == 'Debian'
+  tags: [vault, vault_keepassxc]
+
+- name: Fedora/RHEL | Install KeePassXC
+  ansible.builtin.dnf:
+    name: keepassxc
+    state: present
+  when: ansible_facts.os_family == 'RedHat'
+  tags: [vault, vault_keepassxc]
+
+- name: Arch | Install KeePassXC
+  community.general.pacman:
+    name: keepassxc
+    state: present
+    update_cache: true
+  when: ansible_facts.os_family == 'Archlinux'
+  tags: [vault, vault_keepassxc]
+
+- name: openSUSE | Install KeePassXC
+  community.general.zypper:
+    name: keepassxc
+    state: present
+  when: ansible_facts.os_family == 'Suse'
+  tags: [vault, vault_keepassxc]

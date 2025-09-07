@@ -1,0 +1,45 @@
+---
+- name: Workstation bootstrap
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Include common
+      ansible.builtin.import_role:
+        name: common
+      tags: [common]
+
+    - name: Include fonts
+      ansible.builtin.import_role:
+        name: fonts
+      tags: [fonts]
+
+    - name: Include git
+      ansible.builtin.import_role:
+        name: git
+      tags: [git]
+
+    - name: Include github
+      ansible.builtin.import_role:
+        name: github
+      tags: [github]
+
+    # Vault roles (exactly one depending on vault_choice)
+    - name: Include vault_keepassxc
+      ansible.builtin.import_role:
+        name: vault_keepassxc
+      when: vault_choice == 'keepassxc'
+      tags: [vault, vault_keepassxc]
+
+    - name: Include vault_bitwarden
+      ansible.builtin.import_role:
+        name: vault_bitwarden
+      when: vault_choice == 'bitwarden'
+      tags: [vault, vault_bitwarden]
+
+    - name: Include vault_vaultwarden
+      ansible.builtin.import_role:
+        name: vault_vaultwarden
+      when: vault_choice == 'vaultwarden'
+      tags: [vault, vault_vaultwarden]
