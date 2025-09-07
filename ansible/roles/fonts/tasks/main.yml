@@ -15,6 +15,11 @@
     state: present
   when: ansible_facts.os_family == 'Debian'
 
+- import_tasks: nerd.yml
+  when: ansible_facts.os_family in ['Debian','RedHat','Archlinux','Suse'] and (fonts_install_nerd | default(true))
+  tags: [fonts, nerd]
+
+
 # Fedora/RHEL
 - name: Fedora/RHEL | Install fonts
   dnf:

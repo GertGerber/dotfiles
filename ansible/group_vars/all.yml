@@ -5,7 +5,32 @@
 # - vaultwarden (self-hosted via Docker)
 vault_choice: keepassxc
 
-# Fonts to install
+# -----------------------------
+# Identity lookup configuration
+# -----------------------------
+# You may still override with encrypted vars in ansible-vault by defining:
+#   git_user_name: "..."
+#   git_user_email: "..."
+# If those are set anywhere (e.g. group_vars/all.vault.yml), they take precedence.
+
+# Common logical item/entry name across backends
+git_identity_item_name: "Git Identity"
+
+# KeePassXC (fully local/offline)
+# Requires env KDBX_PASSWORD set at runtime.
+keepass_db_path: "{{ ansible_env.HOME }}/secrets/identity.kdbx"
+keepass_full_name_field: "UserName"
+keepass_email_field: "Email"
+
+# Bitwarden / Vaultwarden (self-hosted or cloud)
+# Requires `bw` CLI and an unlocked session (env BW_SESSION).
+# For Vaultwarden also set env BW_SERVER (e.g. https://vault.local).
+bitwarden_full_name_field: "full_name"
+bitwarden_email_field: "email"
+
+# -----------------------------
+# Fonts catalog (unchanged)
+# -----------------------------
 fonts:
   macos_casks:
     - font-jetbrains-mono-nerd-font
@@ -23,10 +48,9 @@ fonts:
     - jetbrains-mono-fonts
     - fira-code-fonts
 
-git_user_name: "Gert Gerber"
-git_user_email: "ggerber@outlook.co.nz"
-
-# Vaultwarden container settings (used when vault_choice == 'vaultwarden')
+# -----------------------------
+# Vaultwarden container (only used when vault_choice == 'vaultwarden')
+# -----------------------------
 vaultwarden_data_dir: "/var/lib/vaultwarden"
 vaultwarden_port: 8087
 vaultwarden_signups_allowed: false

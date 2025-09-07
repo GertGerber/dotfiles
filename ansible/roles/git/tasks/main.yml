@@ -1,8 +1,9 @@
 ---
-# Install Git and set global identity.
+# Install Git and set global identity, resolving from the selected vault backend.
+# If git_user_name / git_user_email are provided (e.g. via ansible-vault), they win.
 
 - name: Install Git (Linux)
-  package:
+  ansible.builtin.package:
     name: git
     state: present
   when: ansible_facts.os_family != 'Darwin'
@@ -14,18 +15,79 @@
   when: ansible_facts.os_family == 'Darwin'
   become: false
 
+# -----------------------------
+# Resolve Git identity
+# -----------------------------
+
+- name: Compute Bitwarden/Vaultwarden readiness
+  ansible.builtin.set_fact:
+    bw_session_present: "{{ (lookup('ansible.builtin.env','BW_SESSION') | length) > 0 }}"
+  changed_when: false
+
+- name: Stat KeePass database file
+  ansible.builtin.stat:
+    path: "{{ keepass_db_path | default(ansible_env.HOME ~ '/secrets/identity.kdbx') }}"
+  register: keepass_db
+  changed_when: false
+
+- name: Prefer explicitly provided vars (e.g. from ansible-vault)
+  ansible.builtin.set_fact:
+    resolved_git_user_name: "{{ git_user_name }}"
+    resolved_git_user_email: "{{ git_user_email }}"
+  when:
+    - git_user_name is defined
+    - git_user_email is defined
+  changed_when: false
+
+- name: Resolve identity via KeePassXC (local)
+  ansible.builtin.set_fact:
+    resolved_git_user_name: >-
+      {{ lookup('community.general.keepass',
+                'entry=' ~ git_identity_item_name ~
+                ' field=' ~ keepass_full_name_field ~
+                ' file=' ~ (keepass_db_path | default(ansible_env.HOME ~ '/secrets/identity.kdbx')),
+                password=lookup('ansible.builtin.env','KDBX_PASSWORD')) }}
+    resolved_git_user_email: >-
+      {{ lookup('community.general.keepass',
+                'entry=' ~ git_identity_item_name ~
+                ' field=' ~ keepass_email_field ~
+                ' file=' ~ (keepass_db_path | default(ansible_env.HOME ~ '/secrets/identity.kdbx')),
+                password=lookup('ansible.builtin.env','KDBX_PASSWORD')) }}
+  when:
+    - (resolved_git_user_name is not defined) or (resolved_git_user_email is not defined)
+    - vault_choice == 'keepassxc'
+    - keepass_db.stat.exists
+    - (lookup('ansible.builtin.env','KDBX_PASSWORD') | length) > 0
+  changed_when: false
+
+- name: Resolve identity via Bitwarden/Vaultwarden (bw CLI)
+  ansible.builtin.set_fact:
+    resolved_git_user_name: "{{ lookup('community.general.bitwarden', git_identity_item_name ~ '.field.' ~ bitwarden_full_name_field) }}"
+    resolved_git_user_email: "{{ lookup('community.general.bitwarden', git_identity_item_name ~ '.field.' ~ bitwarden_email_field) }}"
+  when:
+    - (resolved_git_user_name is not defined) or (resolved_git_user_email is not defined)
+    - vault_choice in ['bitwarden','vaultwarden']
+    - bw_session_present
+  changed_when: false
+
+# -----------------------------
+# Apply Git configuration
+# -----------------------------
+
 - name: Configure git user.name
   community.general.git_config:
     name: user.name
     scope: global
-    value: "{{ git_user_name }}"
+    value: "{{ resolved_git_user_name }}"
+  when: resolved_git_user_name is defined and (resolved_git_user_name | length) > 0
   become: false
 
 - name: Configure git user.email
   community.general.git_config:
     name: user.email
     scope: global
-    value: "{{ git_user_email }}"
+    value: "{{ resolved_git_user_email }}"
+  when: resolved_git_user_email is defined and (resolved_git_user_email | length) > 0
   become: false
 
 - name: Configure sensible Git defaults

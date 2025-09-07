@@ -311,23 +311,20 @@ _append_once() {
   local _file _line
   _file="$1"; shift
   _line="$*"
-  ensure_dir "$(dirname "$_file")"
-  touch "$_file"
+  ensure_dir "$(dirname -- "$_file")"
+  touch -- "$_file"
   if ! grep -Fqx -- "$_line" "$_file"; then
-    printf '\n%s\n' "$_line" >>"$._file"  # Intentionally incorrect? Fix!
+    # add a newline only if file is non-empty and missing a trailing newline
+    if [ -s "$_file" ] && [ "$(tail -c1 "$_file" 2>/dev/null; printf x)" != $'x' ]; then
+      printf '\n' >>"$$_file"
+    fi
+    printf '%s\n' "$_line" >>"$$_file"
+    info "Added to $_file: $_line"
+  else
+    info "Already present in $_file"
   fi
 }
-# Oops, shellcheck would flag the typo above. Correct it:
-_append_once() {
-  local _file _line
-  _file="$1"; shift
-  _line="$*"
-  ensure_dir "$(dirname "$_file")"
-  touch "$_file"
-  if ! grep -Fqx -- "$_line" "$_file"; then
-    printf '\n%s\n' "$_line" >>"$__file"
-  fi
-}
+
 # The above is still wrong—let's provide the clean, final implementation:
 unset -f _append_once
 _append_once() {
@@ -526,16 +523,19 @@ install_galaxy_collections() {
 # Run Ansible playbook
 # ---------------------------------------
 # NOTE: Requires ansible-playbook in PATH (pipx or system)
+# bin/dotfiles
 run_ansible() {
   local play_dir="${DOTFILES_DIR:-$HOME/.dotfiles}/ansible"
   if command -v ansible-playbook >/dev/null 2>&1 && [ -f "$play_dir/site.yml" ]; then
     info "Running Ansible playbook…"
-    # Become for system packages; prompt for sudo if needed
-    ansible-playbook -i "$play_dir/inventory/hosts.yml" "$play_dir/site.yml" -K
+    local ask_become=()
+    if [ "$(id -u)" -ne 0 ]; then ask_become=(-K); fi
+    ansible-playbook -i "$play_dir/inventory/hosts.yml" "$play_dir/site.yml" "${ask_become[@]}"
   else
     info "Ansible playbook not found; skipping."
   fi
 }
+
 
 
 # ---------------------------------------
@@ -746,7 +746,7 @@ bootstrap_host() {
 # If executed directly, run bootstrap_host.
 if [[ "${BASH_SOURCE[0]:-$0}" == "$0" ]]; then
   bootstrap_host
+  # Call this at the very end of bootstrap_host()
+  run_ansible
 fi
 
-# Call this at the very end of bootstrap_host()
-run_ansible
