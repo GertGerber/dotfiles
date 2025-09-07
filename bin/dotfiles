@@ -744,7 +744,6 @@ bootstrap_host() {
 
 # If this file is sourced by another script, the caller can invoke bootstrap_host explicitly.
 # If executed directly, run bootstrap_host.
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+if [[ "${BASH_SOURCE[0]:-$0}" == "$0" ]]; then
   bootstrap_host
 fi
-
