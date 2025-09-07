@@ -692,11 +692,11 @@ install_dotfiles_alias() {
   case "${SHELL##*/}" in
     bash)
       _append_once "$HOME/.bashrc" "alias dotfiles='$target'"
-      ok "Alias 'dotfiles' added to ~/.bashrc"
+      ok "Alias 'dotfiles' added to $HOME/.bashrc"
       ;;
     zsh)
       _append_once "$HOME/.zshrc" "alias dotfiles='$target'"
-      ok "Alias 'dotfiles' added to ~/.zshrc"
+      ok "Alias 'dotfiles' added to $HOME/.zshrc"
       ;;
     fish)
       # Prefer a function so arguments pass through cleanly
