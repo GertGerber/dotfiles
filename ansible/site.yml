@@ -15,6 +15,11 @@
         name: shellcheck
       tags: [lint, shellcheck]
 
+    - name: Include oh-my-bash
+      ansible.builtin.import_role:
+        name: oh_my_bash
+      tags: [shell, bash, oh_my_bash]
+
     - name: Include fonts
       ansible.builtin.import_role:
         name: fonts

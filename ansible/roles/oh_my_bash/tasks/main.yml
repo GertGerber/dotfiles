@@ -1,0 +1,96 @@
+---
+# Install Oh My Bash and load attached aliases/functions in a portable, idempotent way.
+
+- name: Ensure prerequisite directory for user config
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.bash_custom"
+    state: directory
+    mode: "0755"
+  become: false
+  tags: [shell, bash, oh_my_bash]
+
+- name: Clone/Update Oh My Bash
+  ansible.builtin.git:
+    repo: https://github.com/ohmybash/oh-my-bash.git
+    dest: "{{ ansible_env.HOME }}/.oh-my-bash"
+    version: master
+    update: true
+    depth: 1
+  become: false
+  tags: [shell, bash, oh_my_bash]
+
+- name: Ensure theme directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.oh-my-bash/themes/axin"
+    state: directory
+    mode: "0755"
+  become: false
+  tags: [shell, bash, oh_my_bash]
+
+- name: Install custom theme (axin)
+  ansible.builtin.copy:
+    src: themes/axin/axin.theme.sh
+    dest: "{{ ansible_env.HOME }}/.oh-my-bash/themes/axin/axin.theme.sh"
+    mode: "0644"
+  become: false
+  tags: [shell, bash, oh_my_bash, theme]
+
+- name: Configure Oh My Bash in ~/.bashrc (idempotent block)
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    create: true
+    marker: "# {mark} oh-my-bash (managed by Ansible)"
+    block: |
+      export OSH="${HOME}/.oh-my-bash"
+      export OSH_THEME="${OSH_THEME:-axin}"
+      # Load Oh My Bash if present
+      if [ -s "${OSH}/oh-my-bash.sh" ]; then
+        . "${OSH}/oh-my-bash.sh"
+      fi
+  become: false
+  tags: [shell, bash, oh_my_bash]
+
+- name: Ensure custom alias/function loader in ~/.bashrc (idempotent block)
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    create: true
+    marker: "# {mark} dotfiles aliases (managed by Ansible)"
+    block: |
+      # Load dotfiles-provided aliases and functions
+      if [ -d "$HOME/.bash_custom" ]; then
+        for f in "$HOME/.bash_custom"/*.sh; do
+          [ -r "$f" ] && . "$f"
+        done
+      fi
+  become: false
+  tags: [shell, bash, oh_my_bash]
+
+- name: Install attached aliases/functions into ~/.bash_custom
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ ansible_env.HOME }}/.bash_custom/{{ item | basename }}"
+    mode: "0644"
+  with_fileglob:
+    - "bash/*.sh"
+  become: false
+  tags: [shell, bash, oh_my_bash, aliases]
+
+# OS-specific helpers from the attachment
+- name: Select OS helper script
+  ansible.builtin.set_fact:
+    _os_helper_src: >-
+      {{ 'os/Ubuntu/os_functions.sh' if ansible_facts.os_family == 'Debian'
+         else ('os/Archlinux/os_functions.sh' if ansible_facts.os_family == 'Archlinux'
+               else ('os/MacOSX/zz_os_functions.sh' if ansible_facts.os_family == 'Darwin'
+                     else '') ) }}
+  changed_when: false
+  tags: [shell, bash, oh_my_bash]
+
+- name: Install OS helper script when available
+  ansible.builtin.copy:
+    src: "{{ _os_helper_src }}"
+    dest: "{{ ansible_env.HOME }}/.bash_custom/{{ _os_helper_src | basename }}"
+    mode: "0644"
+  when: _os_helper_src | length > 0
+  become: false
+  tags: [shell, bash, oh_my_bash]
