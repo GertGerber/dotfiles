@@ -680,6 +680,59 @@ setup_windows_posix() {
 }
 
 # ---------------------------------------
+# Install 'dotfiles' alias or shim
+# ---------------------------------------
+install_dotfiles_alias() {
+  local target="$HOME/.dotfiles/bin/dotfiles"
+  if [ ! -x "$target" ]; then
+    warn "dotfiles launcher not found or not executable at $target; skipping alias."
+    return 0
+  fi
+
+  case "${SHELL##*/}" in
+    bash)
+      _append_once "$HOME/.bashrc" "alias dotfiles='$target'"
+      ok "Alias 'dotfiles' added to ~/.bashrc"
+      ;;
+    zsh)
+      _append_once "$HOME/.zshrc" "alias dotfiles='$target'"
+      ok "Alias 'dotfiles' added to ~/.zshrc"
+      ;;
+    fish)
+      # Prefer a function so arguments pass through cleanly
+      local fdir="$HOME/.config/fish/functions"
+      local ffile="$fdir/dotfiles.fish"
+      mkdir -p "$fdir"
+      if [ -f "$ffile" ] && grep -Fq -- "$target" "$ffile"; then
+        info "Fish function already present: $ffile"
+      else
+        printf 'function dotfiles\n  %s $argv\nend\n' "$target" >"$ffile"
+        ok "Fish function installed: $ffile"
+      fi
+      ;;
+    tcsh|csh)
+      local rcfile
+      if [ -f "$HOME/.tcshrc" ]; then rcfile="$HOME/.tcshrc"; else rcfile="$HOME/.cshrc"; fi
+      _append_once "$rcfile" "alias dotfiles '$target'"
+      ok "Alias 'dotfiles' added to ${rcfile##*/}"
+      ;;
+    *)
+      # Shell-agnostic fallback: create a shim on PATH
+      ensure_dir "$HOME/.local/bin"
+      ln -sf "$target" "$HOME/.local/bin/dotfiles"
+      # If you have ensure_path_prefix, use it; otherwise export PATH safely
+      if command -v ensure_path_prefix >/dev/null 2>&1; then
+        ensure_path_prefix "$HOME/.local/bin"
+      else
+        case ":$PATH:" in *":$HOME/.local/bin:"*) : ;; *) PATH="$HOME/.local/bin:$PATH"; export PATH ;; esac
+      fi
+      ok "Shim installed at ~/.local/bin/dotfiles"
+      ;;
+  esac
+}
+
+
+# ---------------------------------------
 # Dispatcher
 # ---------------------------------------
 bootstrap_host() {
@@ -740,13 +793,17 @@ bootstrap_host() {
 
   # Install Galaxy collections defined in requirements/ansible.yml
   install_galaxy_collections
+
+  # Make 'dotfiles' available as a command/alias
+  install_dotfiles_alias
+
+  # (if you run Ansible here, keep it after the alias setup)
+  run_ansible
 }
 
 # If this file is sourced by another script, the caller can invoke bootstrap_host explicitly.
 # If executed directly, run bootstrap_host.
 if [[ "${BASH_SOURCE[0]:-$0}" == "$0" ]]; then
   bootstrap_host
-  # Call this at the very end of bootstrap_host()
-  run_ansible
 fi
 
