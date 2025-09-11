@@ -1,0 +1,124 @@
+---
+# Maps role names in `default_roles` to concrete packages per OS.
+
+role_apps_map:
+  system: {}
+  fonts: {}
+
+  git:
+    darwin:    [ { name: "git",        id: "git",        source: "brew"   } ]
+    debian:    [ { name: "git",        id: "git",        source: "apt"    } ]
+    archlinux: [ { name: "git",        id: "git",        source: "pacman" } ]
+    suse:      [ { name: "git",        id: "git",        source: "zypper" } ]
+
+  neovim:
+    darwin:    [ { name: "neovim",     id: "neovim",     source: "brew"   } ]
+    debian:    [ { name: "neovim",     id: "neovim",     source: "apt"    } ]
+    archlinux: [ { name: "neovim",     id: "neovim",     source: "pacman" } ]
+    suse:      [ { name: "neovim",     id: "neovim",     source: "zypper" } ]
+
+  tmux:
+    darwin:    [ { name: "tmux",       id: "tmux",       source: "brew"   } ]
+    debian:    [ { name: "tmux",       id: "tmux",       source: "apt"    } ]
+    archlinux: [ { name: "tmux",       id: "tmux",       source: "pacman" } ]
+    suse:      [ { name: "tmux",       id: "tmux",       source: "zypper" } ]
+
+  zsh:
+    darwin:    [ { name: "zsh",        id: "zsh",        source: "brew"   } ]
+    debian:    [ { name: "zsh",        id: "zsh",        source: "apt"    } ]
+    archlinux: [ { name: "zsh",        id: "zsh",        source: "pacman" } ]
+    suse:      [ { name: "zsh",        id: "zsh",        source: "zypper" } ]
+
+  starship:
+    darwin:    [ { name: "starship",   id: "starship",   source: "brew"   } ]
+    debian:    [ { name: "starship",   id: "starship",   source: "apt"    } ]
+    archlinux: [ { name: "starship",   id: "starship",   source: "pacman" } ]
+    suse:      [ { name: "starship",   id: "starship",   source: "zypper" } ]
+
+  fzf:
+    darwin:    [ { name: "fzf",        id: "fzf",        source: "brew"   } ]
+    debian:    [ { name: "fzf",        id: "fzf",        source: "apt"    } ]
+    archlinux: [ { name: "fzf",        id: "fzf",        source: "pacman" } ]
+    suse:      [ { name: "fzf",        id: "fzf",        source: "zypper" } ]
+
+  bat:
+    darwin:    [ { name: "bat",        id: "bat",        source: "brew"   } ]
+    debian:    [ { name: "bat",        id: "bat",        source: "apt"    } ]
+    archlinux: [ { name: "bat",        id: "bat",        source: "pacman" } ]
+    suse:      [ { name: "bat",        id: "bat",        source: "zypper" } ]
+
+  lsd:
+    darwin:    [ { name: "lsd",        id: "lsd",        source: "brew"   } ]
+    debian:    [ { name: "lsd",        id: "lsd",        source: "apt"    } ]
+    archlinux: [ { name: "lsd",        id: "lsd",        source: "pacman" } ]
+
+  zoxide:
+    darwin:    [ { name: "zoxide",     id: "zoxide",     source: "brew"   } ]
+    debian:    [ { name: "zoxide",     id: "zoxide",     source: "apt"    } ]
+    archlinux: [ { name: "zoxide",     id: "zoxide",     source: "pacman" } ]
+    suse:      [ { name: "zoxide",     id: "zoxide",     source: "zypper" } ]
+
+  python:
+    darwin:    [ { name: "python",     id: "python@3",   source: "brew"   } ]
+    debian:    [ { name: "python3",    id: "python3",    source: "apt"    } ]
+    archlinux: [ { name: "python",     id: "python",     source: "pacman" } ]
+    suse:      [ { name: "python3",    id: "python3",    source: "zypper" } ]
+
+  npm:
+    darwin:    [ { name: "node",       id: "node",       source: "brew"   } ]
+    debian:    [ { name: "npm",        id: "npm",        source: "apt"    } ]
+    archlinux: [ { name: "npm",        id: "npm",        source: "pacman" } ]
+    suse:      [ { name: "npm",        id: "npm",        source: "zypper" } ]
+
+  nvm:
+    darwin:    [ { name: "nvm",        id: "nvm",        source: "brew"   } ]
+
+  go:
+    darwin:    [ { name: "go",         id: "go",         source: "brew"   } ]
+    debian:    [ { name: "golang",     id: "golang",     source: "apt"    } ]
+    archlinux: [ { name: "go",         id: "go",         source: "pacman" } ]
+    suse:      [ { name: "go",         id: "go",         source: "zypper" } ]
+
+  gh:
+    darwin:    [ { name: "gh",         id: "gh",         source: "brew"   } ]
+    debian:    [ { name: "gh",         id: "gh",         source: "apt"    } ]
+    archlinux: [ { name: "github-cli", id: "github-cli", source: "pacman" } ]
+
+  lazygit:
+    darwin:    [ { name: "lazygit",    id: "lazygit",    source: "brew"   } ]
+    debian:    [ { name: "lazygit",    id: "lazygit",    source: "apt"    } ]
+    archlinux: [ { name: "lazygit",    id: "lazygit",    source: "pacman" } ]
+
+  flatpak:
+    debian:    [ { name: "flatpak",    id: "flatpak",    source: "apt"    } ]
+    archlinux: [ { name: "flatpak",    id: "flatpak",    source: "pacman" } ]
+    suse:      [ { name: "flatpak",    id: "flatpak",    source: "zypper" } ]
+
+  nala:
+    debian:    [ { name: "nala",       id: "nala",       source: "apt"    } ]
+
+  just:
+    darwin:    [ { name: "just",       id: "just",       source: "brew"   } ]
+    debian:    [ { name: "just",       id: "just",       source: "apt"    } ]
+    archlinux: [ { name: "just",       id: "just",       source: "pacman" } ]
+
+  goreleaser:
+    darwin:    [ { name: "goreleaser", id: "goreleaser", source: "brew"   } ]
+    archlinux: [ { name: "goreleaser", id: "goreleaser", source: "pacman" } ]
+
+  kind:
+    darwin:    [ { name: "kind",       id: "kind",       source: "brew"   } ]
+    debian:    [ { name: "kind",       id: "kind",       source: "apt"    } ]
+    archlinux: [ { name: "kind",       id: "kind",       source: "pacman" } ]
+
+  wireguard:
+    debian:    [ { name: "wireguard",  id: "wireguard",  source: "apt"    } ]
+    archlinux: [ { name: "wireguard-tools", id: "wireguard-tools", source: "pacman" } ]
+    suse:      [ { name: "wireguard-tools", id: "wireguard-tools", source: "zypper" } ]
+
+  zellij:
+    darwin:    [ { name: "zellij",     id: "zellij",     source: "brew"   } ]
+    debian:    [ { name: "zellij",     id: "zellij",     source: "apt"    } ]
+    archlinux: [ { name: "zellij",     id: "zellij",     source: "pacman" } ]
+
+  # Add more mappings as you standardise them.

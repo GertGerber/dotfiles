@@ -1,16 +1,16 @@
- ---
- # Orchestrates: read registry -> diff -> install -> write -> uninstall (prune) -> write
- 
+---
+# Orchestrates: read registry -> build desired -> diff -> install -> write -> uninstall (prune) -> write
+
 - name: Read current registry (local fact)
   ansible.builtin.include_role:
     name: app_registry
     tasks_from: read
 
-+- name: Build desired apps from default_roles
-+  ansible.builtin.include_role:
-+    name: app_catalog
-+    tasks_from: build_desired
-+
+- name: Build desired apps from default_roles
+  ansible.builtin.include_role:
+    name: app_catalog
+    tasks_from: build_desired
+
 - name: Diff desired vs current
   ansible.builtin.include_role:
     name: app_registry

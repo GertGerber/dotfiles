@@ -1,0 +1,26 @@
+---
+# Build `apps_desired` from `default_roles` and `role_apps_map`, filtered by current OS.
+
+- name: Determine OS key
+  ansible.builtin.set_fact:
+    os_key: >-
+      {{ 'darwin' if ansible_facts.os_family == 'Darwin' else
+         'debian' if ansible_facts.os_family == 'Debian' else
+         'archlinux' if ansible_facts.os_family == 'Archlinux' else
+         'suse' if ansible_facts.os_family == 'Suse' else
+         'other' }}
+
+- name: Prepare role list
+  ansible.builtin.set_fact:
+    selected_roles: "{{ default_roles | default([]) }}"
+
+- name: Build per-role app lists for this OS
+  ansible.builtin.set_fact:
+    apps_desired: >-
+      {{
+        selected_roles
+        | map('extract', role_apps_map | default({}), default={})
+        | map('extract', os_key, default=[])
+        | list
+        | flatten
+      }}

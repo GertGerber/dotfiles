@@ -1,0 +1,7 @@
+---
+- name: Reconcile desired vs actual apps (with optional pruning)
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - role: apps_reconcile
