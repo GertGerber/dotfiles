@@ -1,0 +1,20 @@
+---
+# Persist `registry_apps` back to the local fact registry (sorted by id)
+
+- name: Validate registry_apps exists
+  ansible.builtin.assert:
+    that:
+      - registry_apps is defined
+      - registry_apps is iterable
+    fail_msg: "registry_apps must be defined before writing the registry."
+
+- name: Write registry to local fact
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/ansible/facts.d/installed_apps.fact
+    content: "{{ {'apps': (registry_apps | sort(attribute='id'))} | to_json }}"
+    mode: "0644"
+
+- name: Refresh local facts (installed_apps)
+  ansible.builtin.setup:
+    filter: ansible_local

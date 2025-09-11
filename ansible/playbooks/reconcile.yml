@@ -1,0 +1,8 @@
+---
+- name: Reconcile desired vs actual apps (with optional pruning)
+  hosts: all
+  gather_facts: true
+
+  # apps_desired must be defined in group_vars/all.yml (see patch below)
+  roles:
+    - role: apps_reconcile

@@ -1,0 +1,80 @@
+---
+# Uninstall everything in `to_remove`. Destructive – runs only with `--tags prune`.
+
+# Try per-app uninstall hooks when present
+- name: Resolve uninstall hook paths
+  ansible.builtin.set_fact:
+    removal_with_hooks: >-
+      {{ to_remove | map('combine',
+         {'hook_path': playbook_dir + '/uninstall/' + item.id + '.yml'}) | list }}
+
+- name: Run per-app uninstall hook (if exists)
+  ansible.builtin.include_tasks: "{{ item.hook_path }}"
+  vars:
+    app: "{{ item }}"
+  loop: "{{ removal_with_hooks }}"
+  when: item.hook_path is file
+  tags: [prune]
+
+# Defaults by package source (only if no hook or additional cleanup)
+- name: macOS | Uninstall brew formulas (default)
+  when:
+    - ansible_facts.os_family == 'Darwin'
+  community.general.homebrew:
+    name: "{{ item.id }}"
+    state: absent
+  loop: "{{ to_remove | selectattr('source','equalto','brew') | list }}"
+  tags: [prune]
+
+- name: macOS | Uninstall casks (default)
+  when:
+    - ansible_facts.os_family == 'Darwin'
+  community.general.homebrew_cask:
+    name: "{{ item.id }}"
+    state: absent
+  loop: "{{ to_remove | selectattr('source','equalto','cask') | list }}"
+  tags: [prune]
+
+- name: Debian/Ubuntu | Uninstall apt packages (default)
+  when: ansible_facts.os_family == 'Debian'
+  ansible.builtin.apt:
+    name: "{{ item.id }}"
+    state: absent
+    purge: true
+  loop: "{{ to_remove | selectattr('source','equalto','apt') | list }}"
+  tags: [prune]
+
+- name: Arch | Uninstall pacman packages (default)
+  when: ansible_facts.os_family == 'Archlinux'
+  community.general.pacman:
+    name: "{{ item.id }}"
+    state: absent
+  loop: "{{ to_remove | selectattr('source','equalto','pacman') | list }}"
+  tags: [prune]
+
+- name: openSUSE | Uninstall zypper packages (default)
+  when: ansible_facts.os_family == 'Suse'
+  community.general.zypper:
+    name: "{{ item.id }}"
+    state: absent
+  loop: "{{ to_remove | selectattr('source','equalto','zypper') | list }}"
+  tags: [prune]
+
+- name: Flatpak | Uninstall apps (default)
+  when: "'flatpak' in to_remove | map(attribute='source') | list"
+  community.general.flatpak:
+    name: "{{ item.id }}"
+    state: absent
+  loop: "{{ to_remove | selectattr('source','equalto','flatpak') | list }}"
+  tags: [prune]
+
+# Update registry after removals
+- name: Compute registry after removals
+  ansible.builtin.set_fact:
+    registry_apps: >-
+      {{ (registry_apps | default(current_apps))
+         | rejectattr('id','in', (to_remove | map(attribute='id') | list)) | list }}
+
+- name: Persist registry
+  ansible.builtin.include_tasks: "{{ role_path | dirname }}/app_registry/tasks/write.yml"
+  tags: [prune]

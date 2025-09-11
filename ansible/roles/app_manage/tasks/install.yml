@@ -1,0 +1,72 @@
+---
+# Install everything in `to_install` (idempotent)
+
+# macOS Homebrew formulas
+- name: macOS | Install brew formulas
+  when: ansible_facts.os_family == 'Darwin'
+  community.general.homebrew:
+    name: "{{ item.id }}"
+    state: present
+  loop: "{{ to_install | selectattr('source','equalto','brew') | list }}"
+  register: brew_installs
+
+# macOS Homebrew casks
+- name: macOS | Install casks
+  when: ansible_facts.os_family == 'Darwin'
+  community.general.homebrew_cask:
+    name: "{{ item.id }}"
+    state: present
+  loop: "{{ to_install | selectattr('source','equalto','cask') | list }}"
+  register: cask_installs
+
+# Debian/Ubuntu APT
+- name: Debian/Ubuntu | Install apt packages
+  when: ansible_facts.os_family == 'Debian'
+  ansible.builtin.apt:
+    name: "{{ item.id }}"
+    state: present
+    update_cache: true
+  loop: "{{ to_install | selectattr('source','equalto','apt') | list }}"
+  register: apt_installs
+
+# Arch pacman
+- name: Arch | Install pacman packages
+  when: ansible_facts.os_family == 'Archlinux'
+  community.general.pacman:
+    name: "{{ item.id }}"
+    state: present
+    update_cache: true
+  loop: "{{ to_install | selectattr('source','equalto','pacman') | list }}"
+  register: pacman_installs
+
+# openSUSE zypper
+- name: openSUSE | Install zypper packages
+  when: ansible_facts.os_family == 'Suse'
+  community.general.zypper:
+    name: "{{ item.id }}"
+    state: present
+    update_cache: true
+  loop: "{{ to_install | selectattr('source','equalto','zypper') | list }}"
+  register: zypper_installs
+
+# Flatpak
+- name: Flatpak | Install apps
+  when: "'flatpak' in to_install | map(attribute='source') | list"
+  community.general.flatpak:
+    name: "{{ item.id }}"
+    state: present
+  loop: "{{ to_install | selectattr('source','equalto','flatpak') | list }}"
+  register: flatpak_installs
+
+# Compose the updated registry after successful installs
+- name: Build updated registry after installs
+  ansible.builtin.set_fact:
+    registry_apps: >-
+      {{ (current_apps + (
+          (brew_installs.results   | default([]) | selectattr('changed') | map(attribute='item') | list) +
+          (cask_installs.results   | default([]) | selectattr('changed') | map(attribute='item') | list) +
+          (apt_installs.results    | default([]) | selectattr('changed') | map(attribute='item') | list) +
+          (pacman_installs.results | default([]) | selectattr('changed') | map(attribute='item') | list) +
+          (zypper_installs.results | default([]) | selectattr('changed') | map(attribute='item') | list) +
+          (flatpak_installs.results| default([]) | selectattr('changed') | map(attribute='item') | list)
+        )) | unique(attribute='id') }}

@@ -1,0 +1,36 @@
+ ---
+ # Orchestrates: read registry -> diff -> install -> write -> uninstall (prune) -> write
+ 
+- name: Read current registry (local fact)
+  ansible.builtin.include_role:
+    name: app_registry
+    tasks_from: read
+
++- name: Build desired apps from default_roles
++  ansible.builtin.include_role:
++    name: app_catalog
++    tasks_from: build_desired
++
+- name: Diff desired vs current
+  ansible.builtin.include_role:
+    name: app_registry
+    tasks_from: diff
+
+- name: Install any missing apps
+  ansible.builtin.include_role:
+    name: app_manage
+    tasks_from: install
+
+- name: Persist registry after installs
+  vars:
+    registry_apps: "{{ registry_apps | default(current_apps) }}"
+  ansible.builtin.include_role:
+    name: app_registry
+    tasks_from: write
+
+# Destructive; only runs when explicitly tagged
+- name: Uninstall apps no longer desired
+  ansible.builtin.include_role:
+    name: app_manage
+    tasks_from: uninstall
+  tags: [prune]
